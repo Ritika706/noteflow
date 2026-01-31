@@ -8,6 +8,7 @@ dotenv.config();
 const { connectDb } = require('../src/db');
 const { Note } = require('../src/models/Note');
 const { isCloudinaryConfigured, uploadToCloudinary } = require('../src/lib/cloudinary');
+const { compressPdfBestEffort, getMaxBytes } = require('../src/lib/pdfCompress');
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -47,6 +48,8 @@ async function main() {
   let migrated = 0;
   let skippedMissing = 0;
   let skippedNoFilePath = 0;
+  let skippedTooLarge = 0;
+  let skippedCompressFailed = 0;
 
   for await (const note of cursor) {
     scanned += 1;
@@ -69,10 +72,47 @@ async function main() {
       continue;
     }
 
-    const uploaded = await uploadToCloudinary(localPath, {
+    let uploadPath = localPath;
+    let compressedTempPath = null;
+    try {
+      const maxBytes = getMaxBytes();
+      const shouldTryCompress = String(process.env.PDF_COMPRESS || 'true').toLowerCase() !== 'false';
+      const isPdf = String(note.mimeType || '').includes('pdf') || String(localPath).toLowerCase().endsWith('.pdf');
+
+      if (shouldTryCompress && isPdf) {
+        const stat = await fs.promises.stat(localPath);
+        if (stat.size > maxBytes) {
+          const compressed = await compressPdfBestEffort(localPath);
+          if (compressed.path !== localPath) {
+            uploadPath = compressed.path;
+            compressedTempPath = compressed.path;
+          }
+
+          if (compressed.size > maxBytes) {
+            skippedTooLarge += 1;
+            console.log('  ⚠️ still > 10MB after compression, skipping');
+            continue;
+          }
+        }
+      }
+    } catch (e) {
+      skippedCompressFailed += 1;
+      console.log(`  ⚠️ compression failed, skipping: ${e.message}`);
+      continue;
+    }
+
+    const uploaded = await uploadToCloudinary(uploadPath, {
       folder: process.env.CLOUDINARY_FOLDER || 'noteflow',
       resourceType: 'auto',
     });
+
+    if (compressedTempPath) {
+      try {
+        await fs.promises.unlink(compressedTempPath);
+      } catch (e) {
+        // ignore
+      }
+    }
 
     if (uploaded?.url) {
       note.fileUrl = uploaded.url;
@@ -89,6 +129,8 @@ async function main() {
   console.log(`Migrated: ${migrated}${dryRun ? ' (dry-run)' : ''}`);
   console.log(`Skipped (missing local file): ${skippedMissing}`);
   console.log(`Skipped (no filePath): ${skippedNoFilePath}`);
+  console.log(`Skipped (too large after compression): ${skippedTooLarge}`);
+  console.log(`Skipped (compression failed): ${skippedCompressFailed}`);
   process.exit(0);
 }
 

@@ -7,6 +7,7 @@ const { Note } = require('../models/Note');
 const { User } = require('../models/User');
 const { authRequired, authOptional } = require('../middleware/auth');
 const { uploadToCloudinary, isCloudinaryConfigured } = require('../lib/cloudinary');
+const { compressPdfBestEffort, getMaxBytes } = require('../lib/pdfCompress');
 
 const router = express.Router();
 
@@ -186,15 +187,48 @@ router.post('/', authRequired, upload.single('file'), async (req, res) => {
 
   let fileUrl = '';
   if (isCloudinaryConfigured()) {
+    const maxBytes = getMaxBytes();
+    const shouldTryCompress = String(process.env.PDF_COMPRESS || 'true').toLowerCase() !== 'false';
+
     try {
-      const uploaded = await uploadToCloudinary(req.file.path, {
+      let uploadPath = req.file.path;
+      let compressedTempPath = null;
+
+      // If Cloudinary free plan rejects >10MB PDFs, try to compress automatically
+      if (shouldTryCompress && String(req.file.mimetype || '').includes('pdf')) {
+        const stat = await fs.promises.stat(req.file.path);
+        if (stat.size > maxBytes) {
+          const compressed = await compressPdfBestEffort(req.file.path);
+          if (compressed.path !== req.file.path) {
+            uploadPath = compressed.path;
+            compressedTempPath = compressed.path;
+          }
+          if (compressed.size > maxBytes) {
+            return res.status(413).json({
+              message:
+                'PDF is too large for free storage limit. Please upload a smaller PDF (<= 10MB) or upgrade storage plan.',
+            });
+          }
+        }
+      }
+
+      const uploaded = await uploadToCloudinary(uploadPath, {
         folder: process.env.CLOUDINARY_FOLDER || 'noteflow',
         resourceType: 'auto',
       });
       fileUrl = uploaded?.url || '';
+
+      if (compressedTempPath) {
+        try {
+          await fs.promises.unlink(compressedTempPath);
+        } catch (e) {
+          // ignore
+        }
+      }
     } catch (e) {
-      // If Cloudinary fails, fall back to local filePath.
-      fileUrl = '';
+      // If Cloudinary fails, do NOT silently fall back to local in production.
+      // Local uploads on Render can disappear after redeploy/restart.
+      return res.status(502).json({ message: 'Failed to upload file to storage. Please try again.' });
     } finally {
       // Best-effort cleanup of local temp file (Render disk is ephemeral anyway)
       try {
