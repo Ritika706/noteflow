@@ -12,6 +12,14 @@ const router = express.Router();
 
 const uploadsDir = path.join(__dirname, '..', '..', 'uploads');
 
+// Ensure local uploads dir exists (used as a temp location before Cloudinary upload)
+try {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+} catch (e) {
+  // If this fails, uploads will not work at all.
+  // Let the request fail loudly rather than silently.
+}
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadsDir);
