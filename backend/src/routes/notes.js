@@ -241,6 +241,9 @@ router.post('/', authRequired, upload.single('file'), async (req, res) => {
       const LARGE_UPLOAD_THRESHOLD = 9 * 1024 * 1024; // ~9MB
       const isImage = String(req.file.mimetype || '').startsWith('image/');
       const forceLargeUpload = !isImage ? uploadSize >= LARGE_UPLOAD_THRESHOLD : false;
+      
+      console.log(`[upload] starting cloudinary upload: path=${uploadPath} size=${uploadSize}B mime=${req.file.mimetype} forceLarge=${forceLargeUpload}`);
+      
       const uploaded = await uploadToCloudinary(uploadPath, {
         folder: envString('CLOUDINARY_FOLDER', 'noteflow'),
         resourceType: String(req.file.mimetype || '').startsWith('image/') ? 'image' : 'raw',
@@ -283,10 +286,11 @@ router.post('/', authRequired, upload.single('file'), async (req, res) => {
       }
 
       // Always log the root message on server (helps on Render even when debugTiming is off)
+      console.error('[upload] FULL ERROR:', e);
       if (msg) {
         console.error('[upload] cloudinary error:', msg);
       } else {
-        console.error('[upload] cloudinary error');
+        console.error('[upload] cloudinary error (no message)');
       }
       // If Cloudinary fails, do NOT silently fall back to local in production.
       // Local uploads on Render can disappear after redeploy/restart.
