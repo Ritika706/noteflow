@@ -248,6 +248,14 @@ router.get('/:id/download', authRequired, async (req, res) => {
   }
 
   const absolutePath = path.join(uploadsDir, note.filePath);
+  try {
+    await fs.promises.access(absolutePath, fs.constants.R_OK);
+  } catch (e) {
+    return res.status(404).json({
+      message:
+        'File not found on server. This can happen after redeploy. Please re-upload this note to restore the file.',
+    });
+  }
   return res.download(absolutePath, note.originalName);
 });
 
