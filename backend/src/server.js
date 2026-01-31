@@ -12,6 +12,7 @@ const { meRouter } = require('./routes/me');
 const { Note } = require('./models/Note');
 const { User } = require('./models/User');
 const mongoose = require('mongoose');
+const { isCloudinaryConfigured } = require('./lib/cloudinary');
 
 const app = express();
 
@@ -63,6 +64,15 @@ app.get('/health', (req, res) => {
       host: conn?.host || null,
       name: conn?.name || null,
       readyState: conn?.readyState,
+    },
+    cloudinary: {
+      configured: isCloudinaryConfigured(),
+      folder: process.env.CLOUDINARY_FOLDER || null,
+      accessMode: process.env.CLOUDINARY_ACCESS_MODE || null,
+      requireCloudinary: String(process.env.REQUIRE_CLOUDINARY || 'false').toLowerCase() === 'true',
+    },
+    build: {
+      renderGitCommit: process.env.RENDER_GIT_COMMIT || null,
     },
   });
 });
