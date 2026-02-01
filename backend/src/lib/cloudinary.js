@@ -29,6 +29,7 @@ async function uploadToCloudinary(
     folder,
     resource_type: resourceType,
     type: 'upload',
+    access_mode: 'public',
     use_filename: true,
     unique_filename: true,
   };
