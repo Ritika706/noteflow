@@ -245,6 +245,36 @@ router.post('/', authRequired, upload.single('file'), async (req, res) => {
   return res.status(201).json({ note });
 });
 
+// Public preview (proxy to Cloudinary)
+router.get('/:id/preview', async (req, res) => {
+  const note = await Note.findById(req.params.id).select('fileUrl mimeType originalName').lean();
+  if (!note) return res.status(404).json({ message: 'Note not found' });
+
+  if (!note.fileUrl) {
+    return res.status(404).json({ message: 'Preview not available' });
+  }
+
+  try {
+    const upstream = await fetch(note.fileUrl);
+    if (!upstream.ok) {
+      return res.status(502).json({ message: 'Failed to fetch file' });
+    }
+
+    const contentType = upstream.headers.get('content-type') || note.mimeType || 'application/octet-stream';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(note.originalName)}"`);
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+
+    if (!upstream.body) {
+      return res.status(502).json({ message: 'File stream unavailable' });
+    }
+
+    Readable.fromWeb(upstream.body).pipe(res);
+  } catch (e) {
+    return res.status(502).json({ message: 'Failed to fetch file' });
+  }
+});
+
 // Protected download + track
 router.get('/:id/download', authRequired, async (req, res) => {
   const note = await Note.findById(req.params.id);

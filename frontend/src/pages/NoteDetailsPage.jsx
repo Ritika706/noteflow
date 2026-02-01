@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { api } from '../lib/api';
+import { api, apiBaseUrl } from '../lib/api';
 import { isLoggedIn } from '../lib/auth';
 import { toastError, toastInfo, toastSuccess } from '../lib/toast';
 import { getAxiosErrorMessage } from '../lib/axiosError';
@@ -44,11 +44,11 @@ export default function NoteDetailsPage() {
   }, []);
 
   const previewUrl = useMemo(() => {
-    // Cloudinary URL - use directly
-    if (note?.fileUrl && /^https?:\/\//i.test(note.fileUrl)) {
-      return note.fileUrl;
+    // Use backend proxy for preview (avoids Cloudinary CORS/auth issues)
+    if (note?.fileUrl) {
+      const base = String(apiBaseUrl || '').trim().replace(/\/+$/, '');
+      return `${base}/api/notes/${note._id}/preview`;
     }
-    // No valid URL
     return null;
   }, [note]);
 
