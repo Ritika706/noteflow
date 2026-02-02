@@ -91,6 +91,54 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Debug endpoint to check note and cloudinary status
+app.get('/api/debug/note/:id', async (req, res) => {
+  const note = await Note.findById(req.params.id).select('fileUrl mimeType originalName').lean();
+  if (!note) return res.status(404).json({ message: 'Note not found' });
+  
+  const { getSignedUrl, extractPublicId, extractResourceType } = require('./lib/cloudinary');
+  
+  const publicId = extractPublicId(note.fileUrl);
+  const resourceType = extractResourceType(note.fileUrl);
+  const signedUrl = getSignedUrl(publicId, resourceType);
+  
+  // Try to fetch the original URL
+  let originalFetchStatus = null;
+  let signedFetchStatus = null;
+  
+  try {
+    const resp = await fetch(note.fileUrl, { method: 'HEAD' });
+    originalFetchStatus = resp.status;
+  } catch (e) {
+    originalFetchStatus = `error: ${e.message}`;
+  }
+  
+  try {
+    const resp = await fetch(signedUrl, { method: 'HEAD' });
+    signedFetchStatus = resp.status;
+  } catch (e) {
+    signedFetchStatus = `error: ${e.message}`;
+  }
+  
+  return res.json({
+    note: {
+      fileUrl: note.fileUrl,
+      mimeType: note.mimeType,
+      originalName: note.originalName,
+    },
+    cloudinary: {
+      configured: isCloudinaryConfigured(),
+      publicId,
+      resourceType,
+      signedUrl,
+    },
+    fetch: {
+      originalFetchStatus,
+      signedFetchStatus,
+    }
+  });
+});
+
 app.get('/api/stats', async (req, res) => {
   const [totalNotes, contributorsAgg, downloadsAgg] = await Promise.all([
     Note.countDocuments(),
