@@ -132,13 +132,17 @@ router.post('/forgot-password/request', async (req, res) => {
   user.resetOtpAttempts = 0;
   await user.save();
 
+  // Always log OTP for debugging (can be removed later)
+  console.log(`🔐 OTP for ${user.email}: ${otp}`);
+
   // Send email in background (don't wait)
   sendResetOtpEmail({ to: user.email, name: user.name, otp })
     .then((sent) => {
-      if (!sent) console.log(`🔐 OTP for ${user.email}: ${otp}`);
+      if (sent) console.log(`✅ Email sent to ${user.email}`);
+      else console.log(`❌ Email failed for ${user.email}`);
     })
-    .catch(() => {
-      console.log(`🔐 OTP for ${user.email}: ${otp}`);
+    .catch((e) => {
+      console.log(`❌ Email error for ${user.email}:`, e.message);
     });
 
   return res.json({ message: 'If an account exists, an OTP has been sent.' });
