@@ -6,7 +6,7 @@ const { Readable } = require('stream');
 const { Note } = require('../models/Note');
 const { User } = require('../models/User');
 const { authRequired, authOptional } = require('../middleware/auth');
-const { uploadToCloudinary, isCloudinaryConfigured, deleteFromCloudinary } = require('../lib/cloudinary');
+const { uploadToCloudinary, uploadBufferToCloudinary, isCloudinaryConfigured, deleteFromCloudinary } = require('../lib/cloudinary');
 const { envBool, envString } = require('../lib/env');
 
 const router = express.Router();
@@ -42,8 +42,7 @@ const allowedMimeTypes = new Set([
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 ]);
 
-const upload = multer({
-  storage,
+const baseMulterOptions = {
   limits: { fileSize: 15 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (!file?.mimetype || !allowedMimeTypes.has(file.mimetype)) {
@@ -51,25 +50,41 @@ const upload = multer({
     }
     return cb(null, true);
   },
+};
+
+const uploadDisk = multer({
+  ...baseMulterOptions,
+  storage,
+});
+
+// Faster on hosted envs: avoids writing temp files to ephemeral disk.
+const uploadMemory = multer({
+  ...baseMulterOptions,
+  storage: multer.memoryStorage(),
 });
 
 // Public list + search/filter
 router.get('/', async (req, res) => {
-  const { q, subject, semester } = req.query;
+  try {
+    const { q, subject, semester } = req.query;
 
-  const filter = {};
-  if (subject) filter.subject = String(subject);
-  if (semester) filter.semester = String(semester);
-  if (q) {
-    const regex = new RegExp(String(q), 'i');
-    filter.$or = [{ title: regex }, { subject: regex }, { semester: regex }];
+    const filter = {};
+    if (subject) filter.subject = String(subject);
+    if (semester) filter.semester = String(semester);
+    if (q) {
+      const regex = new RegExp(String(q), 'i');
+      filter.$or = [{ title: regex }, { subject: regex }, { semester: regex }];
+    }
+
+    const notes = await Note.find(filter)
+      .sort({ createdAt: -1 })
+      .select('title subject semester description mimeType originalName uploadedBy createdAt downloadCount likesCount ratingAvg ratingCount filePath fileUrl');
+
+    return res.json({ notes });
+  } catch (e) {
+    console.error('[notes:list] error:', e);
+    return res.status(500).json({ message: 'Failed to load notes' });
   }
-
-  const notes = await Note.find(filter)
-    .sort({ createdAt: -1 })
-    .select('title subject semester description mimeType originalName uploadedBy createdAt downloadCount likesCount ratingAvg ratingCount filePath fileUrl');
-
-  return res.json({ notes });
 });
 
 // Public top-rated
@@ -175,7 +190,14 @@ router.post('/:id/rate', authRequired, async (req, res) => {
 });
 
 // Protected upload
-router.post('/', authRequired, upload.single('file'), async (req, res) => {
+router.post(
+  '/',
+  authRequired,
+  (req, res, next) => {
+    const middleware = isCloudinaryConfigured() ? uploadMemory.single('file') : uploadDisk.single('file');
+    return middleware(req, res, next);
+  },
+  async (req, res) => {
   const { title, subject, semester, description = '' } = req.body || {};
 
   if (!title || !subject || !semester) {
@@ -204,16 +226,25 @@ router.post('/', authRequired, upload.single('file'), async (req, res) => {
 
     // Check file size - reject if >= 10MB
     if (req.file.size >= MAX_FILE_BYTES) {
-      // Cleanup temp file
-      try { await fs.promises.unlink(req.file.path); } catch (e) { /* ignore */ }
       return res.status(413).json({ message: 'File size too large. Please upload a file smaller than 10MB.' });
     }
 
     try {
-      const uploaded = await uploadToCloudinary(req.file.path, {
-        folder: envString('CLOUDINARY_FOLDER', 'noteflow'),
-        resourceType: String(req.file.mimetype || '').startsWith('image/') ? 'image' : 'raw',
-      });
+      const isImage = String(req.file.mimetype || '').startsWith('image/');
+      const resourceType = isImage ? 'image' : 'raw';
+      const folder = envString('CLOUDINARY_FOLDER', 'noteflow');
+
+      const uploaded = req.file?.buffer
+        ? await uploadBufferToCloudinary(req.file.buffer, {
+            folder,
+            resourceType,
+            originalName: req.file.originalname,
+          })
+        : await uploadToCloudinary(req.file.path, {
+            folder,
+            resourceType,
+          });
+
       fileUrl = uploaded?.url || '';
       cloudinaryPublicId = uploaded?.publicId || '';
       cloudinaryResourceType = uploaded?.resourceType || '';
@@ -227,8 +258,10 @@ router.post('/', authRequired, upload.single('file'), async (req, res) => {
       return res.status(502).json({
         message: msg ? `Failed to upload: ${msg}` : 'Failed to upload file to storage. Please try again.',
       });
-    } finally {
-      // Cleanup temp file
+    }
+
+    // Cleanup temp file if we used disk storage
+    if (req.file?.path) {
       try { await fs.promises.unlink(req.file.path); } catch (e) { /* ignore */ }
     }
   }
@@ -238,7 +271,8 @@ router.post('/', authRequired, upload.single('file'), async (req, res) => {
     subject: String(subject),
     semester: String(semester),
     description: String(description || ''),
-    filePath: req.file.filename,
+    // For Cloudinary uploads, multer may not provide a disk filename. Keep this field non-empty for schema compatibility.
+    filePath: req.file.filename || cloudinaryPublicId || String(req.file.originalname || 'upload'),
     fileUrl,
     cloudinaryPublicId,
     cloudinaryResourceType,

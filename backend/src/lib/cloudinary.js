@@ -1,4 +1,5 @@
 const cloudinary = require('cloudinary').v2;
+const path = require('path');
 
 function isCloudinaryConfigured() {
   return Boolean(
@@ -43,6 +44,42 @@ async function uploadToCloudinary(
   };
 }
 
+async function uploadBufferToCloudinary(
+  buffer,
+  { folder = 'noteflow', resourceType = 'auto', originalName = '' } = {}
+) {
+  if (!isCloudinaryConfigured()) return null;
+  if (!buffer || !buffer.length) return null;
+  initCloudinary();
+
+  const baseName = String(originalName || '').trim();
+  const nameNoExt = baseName ? path.parse(baseName).name : '';
+
+  const options = {
+    folder,
+    resource_type: resourceType,
+    type: 'upload',
+    access_mode: 'public',
+    use_filename: true,
+    unique_filename: true,
+    ...(nameNoExt ? { filename_override: nameNoExt } : {}),
+  };
+
+  const res = await new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(options, (err, result) => {
+      if (err) return reject(err);
+      return resolve(result);
+    });
+    stream.end(buffer);
+  });
+
+  return {
+    url: res.secure_url,
+    publicId: res.public_id,
+    resourceType: res.resource_type,
+  };
+}
+
 async function deleteFromCloudinary(publicId, { resourceType = 'raw' } = {}) {
   if (!isCloudinaryConfigured()) return null;
   if (!publicId) return null;
@@ -55,4 +92,4 @@ async function deleteFromCloudinary(publicId, { resourceType = 'raw' } = {}) {
   });
 }
 
-module.exports = { isCloudinaryConfigured, uploadToCloudinary, deleteFromCloudinary };
+module.exports = { isCloudinaryConfigured, uploadToCloudinary, uploadBufferToCloudinary, deleteFromCloudinary };

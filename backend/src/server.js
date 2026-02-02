@@ -94,14 +94,19 @@ app.get('/health', (req, res) => {
 
 
 app.get('/api/stats', async (req, res) => {
-  const [totalNotes, contributorsAgg, downloadsAgg] = await Promise.all([
-    Note.countDocuments(),
-    User.countDocuments(),
-    Note.aggregate([{ $group: { _id: null, total: { $sum: '$downloadCount' } } }]),
-  ]);
+  try {
+    const [totalNotes, contributorsAgg, downloadsAgg] = await Promise.all([
+      Note.countDocuments(),
+      User.countDocuments(),
+      Note.aggregate([{ $group: { _id: null, total: { $sum: '$downloadCount' } } }]),
+    ]);
 
-  const totalDownloads = Number(downloadsAgg?.[0]?.total || 0);
-  return res.json({ totalNotes, contributors: contributorsAgg, totalDownloads });
+    const totalDownloads = Number(downloadsAgg?.[0]?.total || 0);
+    return res.json({ totalNotes, contributors: contributorsAgg, totalDownloads });
+  } catch (e) {
+    console.error('[stats] error:', e);
+    return res.status(500).json({ message: 'Failed to load stats' });
+  }
 });
 app.use('/api/auth', authRouter);
 app.use('/api/notes', notesRouter);
