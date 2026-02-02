@@ -32,20 +32,19 @@ export default function HomePage() {
   }
 
   async function load() {
-    if (!isLoggedIn()) {
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     setError('');
     try {
-      const [notesRes, statsRes] = await Promise.all([
-        api.get('/api/notes'),
-        api.get('/api/stats').catch(() => ({ data: null })),
-      ]);
-      setNotes(notesRes.data.notes || []);
+      // Always fetch stats (public)
+      const statsRes = await api.get('/api/stats').catch(() => ({ data: null }));
       setStats(statsRes.data);
-      await loadTopRated();
+
+      // Only fetch notes if logged in
+      if (isLoggedIn()) {
+        const notesRes = await api.get('/api/notes');
+        setNotes(notesRes.data.notes || []);
+        await loadTopRated();
+      }
     } catch (e) {
       setError(e?.response?.data?.message || 'Failed to load notes');
     } finally {
@@ -155,17 +154,20 @@ export default function HomePage() {
         </div>
 
         <div className="mt-8 grid gap-3 sm:grid-cols-3">
-          <Card className="glass p-4">
-            <div className="text-sm text-slate-600 dark:text-slate-300">Total Notes</div>
-            <div className="mt-1 font-display text-2xl font-bold text-primary">{stats?.totalNotes ?? notes.length}</div>
+          <Card className="glass p-4 text-center">
+            <div className="text-3xl mb-1">📚</div>
+            <div className="font-display text-2xl font-bold text-primary">{stats?.totalNotes ?? 0}</div>
+            <div className="text-sm text-slate-600 dark:text-slate-300">Notes Shared</div>
           </Card>
-          <Card className="glass p-4">
+          <Card className="glass p-4 text-center">
+            <div className="text-3xl mb-1">👥</div>
+            <div className="font-display text-2xl font-bold text-primary">{stats?.contributors ?? 0}</div>
             <div className="text-sm text-slate-600 dark:text-slate-300">Contributors</div>
-            <div className="mt-1 font-display text-2xl font-bold text-primary">{stats?.contributors ?? '—'}</div>
           </Card>
-          <Card className="glass p-4">
+          <Card className="glass p-4 text-center">
+            <div className="text-3xl mb-1">⬇️</div>
+            <div className="font-display text-2xl font-bold text-primary">{stats?.totalDownloads ?? 0}</div>
             <div className="text-sm text-slate-600 dark:text-slate-300">Downloads</div>
-            <div className="mt-1 font-display text-2xl font-bold text-primary">{stats?.totalDownloads ?? '—'}</div>
           </Card>
         </div>
       </section>
