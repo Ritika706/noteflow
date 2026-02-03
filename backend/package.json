@@ -16,6 +16,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@ilovepdf/ilovepdf-nodejs": "^0.3.1",
     "axios": "^1.13.4",
     "bcryptjs": "^3.0.3",
     "cloudinary": "^2.7.0",

@@ -43,9 +43,17 @@ export default function UploadPage() {
     if (!f) return;
 
     const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10MB
+    const MAX_PDF_BYTES = 50 * 1024 * 1024; // 50MB for PDFs (server compresses)
+    const isPdf = String(f.type || '').toLowerCase() === 'application/pdf';
 
-    // All files must be under 10MB
-    if (f.size >= MAX_FILE_BYTES) {
+    // PDFs can be up to 50MB (server will compress with iLovePDF)
+    if (isPdf && f.size > MAX_PDF_BYTES) {
+      toastError('PDF is too large. Max 50MB allowed.');
+      return;
+    }
+
+    // Non-PDFs must be under 10MB
+    if (!isPdf && f.size >= MAX_FILE_BYTES) {
       toastError('File size too large. Please upload a file smaller than 10MB.');
       return;
     }
@@ -70,7 +78,14 @@ export default function UploadPage() {
     form.append('file', file);
 
     setLoading(true);
-    setUploadStatus('Uploading...');
+    const isPdf = String(file.type || '').toLowerCase() === 'application/pdf';
+    const isLargePdf = isPdf && file.size > 10 * 1024 * 1024; // > 10MB
+    
+    if (isLargePdf) {
+      setUploadStatus('Compressing PDF... This may take a moment.');
+    } else {
+      setUploadStatus('Uploading...');
+    }
     
     try {
       const res = await api.post('/api/notes', form, {
