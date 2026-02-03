@@ -16,6 +16,7 @@ export default function UploadPage() {
   const [description, setDescription] = useState('');
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
 
   const canSubmit = Boolean(title.trim() && subject.trim() && semester && file && !loading);
 
@@ -77,10 +78,20 @@ export default function UploadPage() {
     form.append('file', file);
 
     setLoading(true);
+    const isPdf = String(file.type || '').toLowerCase() === 'application/pdf';
+    const isLargePdf = isPdf && file.size > 5 * 1024 * 1024; // > 5MB
+    
+    if (isLargePdf) {
+      setUploadStatus('Compressing PDF... This may take a moment.');
+    } else {
+      setUploadStatus('Uploading...');
+    }
+    
     try {
       const res = await api.post('/api/notes', form, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
+      setUploadStatus('');
       toastSuccess('Note uploaded successfully!');
       navigate(`/note/${res.data.note?._id || ''}`);
     } catch (err) {
@@ -92,6 +103,7 @@ export default function UploadPage() {
       toastError(await getAxiosErrorMessage(err, 'Failed to upload note'));
     } finally {
       setLoading(false);
+      setUploadStatus('');
     }
   }
 
@@ -179,7 +191,7 @@ export default function UploadPage() {
           </div>
 
           <Button className="w-full" type="submit" disabled={!canSubmit}>
-            {loading ? 'Uploading…' : 'Upload Note'}
+            {loading ? (uploadStatus || 'Uploading…') : 'Upload Note'}
           </Button>
         </form>
       </Card>
