@@ -13,7 +13,6 @@ const { Note } = require('./models/Note');
 const { User } = require('./models/User');
 const mongoose = require('mongoose');
 const { isCloudinaryConfigured } = require('./lib/cloudinary');
-const { isGhostscriptAvailable } = require('./lib/ghostscript');
 const { envBool, envString } = require('./lib/env');
 
 const app = express();
@@ -61,8 +60,7 @@ app.options(/.*/, cors(corsOptions));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 app.get('/health', async (req, res) => {
-  const gsAvailable = await isGhostscriptAvailable();
-  const base = { ok: true, ghostscript: gsAvailable };
+  const base = { ok: true };
   const includeDb = envBool('DEBUG_DB_INFO', false);
   if (!includeDb) return res.json(base);
 
