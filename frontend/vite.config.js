@@ -9,7 +9,7 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: ['pdfjs-dist'],
+      // external removed to allow bundling pdfjs-dist
     },
   },
 })
