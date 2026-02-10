@@ -13,10 +13,44 @@ function getFileExtension(url) {
   }
 }
 
+function getMimeType(url) {
+  // Optionally, you can pass mimeType as a prop for more accuracy
+  // Here, fallback to extension-based guessing
+  const ext = getFileExtension(url);
+  if (["jpg","jpeg","png","gif","webp","bmp","svg"].includes(ext)) return "image";
+  if (["mp4","webm","ogg","mov","avi","mkv"].includes(ext)) return "video";
+  if (["mp3","wav","ogg","aac","flac"].includes(ext)) return "audio";
+  return "other";
+}
+
 const PDFViewer = ({ url }) => {
   if (!url) return null;
   const ext = getFileExtension(url);
+  const mimeType = getMimeType(url);
   const isGoogleSupported = GOOGLE_VIEWER_EXTS.includes(ext);
+
+  // Exclude image, video, audio from Google Docs Viewer
+  if (mimeType === "image") {
+    return (
+      <div style={{ textAlign: 'center', marginTop: 32 }}>
+        <img src={url} alt="Preview" style={{ maxWidth: '100%', borderRadius: 8, boxShadow: '0 2px 8px 0 rgba(0,0,0,0.04)' }} />
+      </div>
+    );
+  }
+  if (mimeType === "video") {
+    return (
+      <div style={{ textAlign: 'center', marginTop: 32 }}>
+        <video src={url} controls style={{ maxWidth: '100%', borderRadius: 8, boxShadow: '0 2px 8px 0 rgba(0,0,0,0.04)' }} />
+      </div>
+    );
+  }
+  if (mimeType === "audio") {
+    return (
+      <div style={{ textAlign: 'center', marginTop: 32 }}>
+        <audio src={url} controls style={{ width: '100%' }} />
+      </div>
+    );
+  }
 
   if (isGoogleSupported) {
     // Google Docs Viewer embed
