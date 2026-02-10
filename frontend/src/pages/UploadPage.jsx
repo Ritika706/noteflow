@@ -27,17 +27,9 @@ export default function UploadPage() {
     return { name: file.name, sizeMb };
   }, [file]);
 
+  // Allow all file types
   function isAllowedFile(f) {
-    const allowed = new Set([
-      'application/pdf',
-      'image/png',
-      'image/jpeg',
-      'image/webp',
-      'image/gif',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    ]);
-    return allowed.has(f.type);
+    return true;
   }
 
   function pickFile(f) {
@@ -59,10 +51,7 @@ export default function UploadPage() {
       return;
     }
 
-    if (!isAllowedFile(f)) {
-      toastError('Only PDF, images, and Word docs allowed');
-      return;
-    }
+    // No file type restriction
     setFile(f);
   }
 
@@ -179,7 +168,6 @@ export default function UploadPage() {
               <input
                 type="file"
                 className="mt-4 block w-full text-sm"
-                accept="application/pdf,image/*,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 onChange={(e) => pickFile(e.target.files?.[0] || null)}
               />
             </div>
