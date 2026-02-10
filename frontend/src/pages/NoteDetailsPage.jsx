@@ -1,3 +1,4 @@
+import PDFViewer from '../components/PDFViewer';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api, apiBaseUrl } from '../lib/api';
@@ -266,12 +267,7 @@ export default function NoteDetailsPage() {
                 : 'mt-4 overflow-hidden rounded-xl border border-slate-200/70 dark:border-white/10 bg-white'
             }
           >
-            <iframe
-              title="pdf"
-              src={previewUrl}
-              allow="fullscreen"
-              className={fullscreen ? 'w-full h-screen' : 'w-full h-[72vh]'}
-            />
+            <PDFViewer url={previewUrl} />
           </div>
         ) : mime.startsWith('image/') ? (
           <a href={previewUrl} target="_blank" rel="noreferrer" className="block mt-4">
