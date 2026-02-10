@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { pdfjs } from 'pdfjs-dist';
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.js`;
+import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist';
+GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js';
 
 const PDFViewer = ({ url }) => {
   const canvasRef = useRef(null);
@@ -8,7 +8,7 @@ const PDFViewer = ({ url }) => {
   useEffect(() => {
     if (!url) return;
     const renderPDF = async () => {
-      const loadingTask = pdfjs.getDocument(url);
+      const loadingTask = getDocument(url);
       const pdf = await loadingTask.promise;
       const page = await pdf.getPage(1);
       const viewport = page.getViewport({ scale: 1.5 });
