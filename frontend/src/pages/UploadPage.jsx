@@ -69,6 +69,7 @@ export default function UploadPage() {
   async function onSubmit(e) {
     e.preventDefault();
     if (!file) return;
+    console.log('FILE SIZE:', file.size);
     setLoading(true);
     setUploadStatus('Uploading to storage...');
     try {
@@ -76,8 +77,18 @@ export default function UploadPage() {
       const bucket = 'noteflow-files';
       const ext = file.name.split('.').pop();
       const supabasePath = `files/${Date.now()}_${Math.round(Math.random() * 1e9)}.${ext}`;
-      const { data, error } = await supabase.storage.from(bucket).upload(supabasePath, file);
-      if (error) throw error;
+      const { data, error } = await supabase.storage.from(bucket).upload(supabasePath, file, {
+        contentType: file.type,
+        upsert: false,
+      });
+      console.log('UPLOAD DATA:', data);
+      if (error || !data?.path) {
+        console.error('SUPABASE UPLOAD FAILED:', error);
+        toastError('Upload failed — file not saved properly');
+        setLoading(false);
+        setUploadStatus('');
+        return;
+      }
       // Get public URL
       const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(supabasePath);
       const fileUrl = publicUrlData.publicUrl;
