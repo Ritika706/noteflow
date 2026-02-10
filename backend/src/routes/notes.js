@@ -196,54 +196,26 @@ router.post('/:id/rate', authRequired, async (req, res) => {
 router.post(
   '/',
   authRequired,
-  uploadDisk.single('file'),
   async (req, res) => {
-  const { title, subject, semester, description = '' } = req.body || {};
-
-  if (!title || !subject || !semester) {
-    return res.status(400).json({ message: 'title, subject, semester are required' });
-  }
-  if (!req.file) {
-    return res.status(400).json({ message: 'file is required' });
-  }
-
-  // Upload file to Supabase Storage
-  let fileUrl = '';
-  try {
-    const bucket = process.env.SUPABASE_BUCKET;
-    const fileExt = path.extname(req.file.originalname);
-    const supabasePath = `${Date.now()}_${Math.round(Math.random() * 1e9)}${fileExt}`;
-    const { data, error } = await supabase.storage.from(bucket).upload(supabasePath, req.file.buffer, {
-      contentType: req.file.mimetype,
-      upsert: false,
-    });
-    if (error) throw error;
-    // Get public URL
-    const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(supabasePath);
-    fileUrl = publicUrlData.publicUrl;
-    // Remove temp file if present
-    if (req.file.path) {
-      try { await fs.promises.unlink(req.file.path); } catch (e) {}
+    const { title, subject, semester, description = '', fileUrl, originalName, mimeType } = req.body || {};
+    if (!title || !subject || !semester || !fileUrl || !originalName || !mimeType) {
+      return res.status(400).json({ message: 'title, subject, semester, fileUrl, originalName, mimeType are required' });
     }
-  } catch (e) {
-    return res.status(502).json({ message: 'Failed to upload file to Supabase Storage', error: String(e.message || e) });
+    const note = await Note.create({
+      title: String(title),
+      subject: String(subject),
+      semester: String(semester),
+      description: String(description || ''),
+      filePath: originalName,
+      fileUrl,
+      originalName,
+      mimeType,
+      downloadCount: 0,
+      uploadedBy: req.user.id,
+    });
+    return res.status(201).json({ note });
   }
-
-  const note = await Note.create({
-    title: String(title),
-    subject: String(subject),
-    semester: String(semester),
-    description: String(description || ''),
-    filePath: req.file.filename || String(req.file.originalname || 'upload'),
-    fileUrl,
-    originalName: req.file.originalname,
-    mimeType: req.file.mimetype,
-    downloadCount: 0,
-    uploadedBy: req.user.id,
-  });
-
-  return res.status(201).json({ note });
-});
+);
 
 // Public preview - stream file for PDF preview in iframe
 router.get('/:id/preview', async (req, res) => {
