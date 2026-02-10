@@ -213,7 +213,7 @@ router.post(
     const bucket = process.env.SUPABASE_BUCKET;
     const fileExt = path.extname(req.file.originalname);
     const supabasePath = `${Date.now()}_${Math.round(Math.random() * 1e9)}${fileExt}`;
-    const { data, error } = await supabase.storage.from(bucket).upload(supabasePath, fs.createReadStream(req.file.path), {
+    const { data, error } = await supabase.storage.from(bucket).upload(supabasePath, req.file.buffer, {
       contentType: req.file.mimetype,
       upsert: false,
     });
@@ -221,8 +221,10 @@ router.post(
     // Get public URL
     const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(supabasePath);
     fileUrl = publicUrlData.publicUrl;
-    // Remove temp file
-    await fs.promises.unlink(req.file.path);
+    // Remove temp file if present
+    if (req.file.path) {
+      try { await fs.promises.unlink(req.file.path); } catch (e) {}
+    }
   } catch (e) {
     return res.status(502).json({ message: 'Failed to upload file to Supabase Storage', error: String(e.message || e) });
   }
