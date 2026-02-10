@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { GlobalWorkerOptions, getDocument } from 'pdfjs-dist';
-GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js';
+GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.js';
 
 
 const PDFViewer = ({ url }) => {
