@@ -1,8 +1,7 @@
 import React from 'react';
 
-const GOOGLE_VIEWER_EXTS = [
-  'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'txt', 'rtf', 'csv', 'odt', 'ods', 'odp'
-];
+const MS_VIEWER_EXTS = ['doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx'];
+const GOOGLE_VIEWER_EXTS = ['pdf', 'txt', 'rtf', 'csv', 'odt', 'ods', 'odp'];
 
 function getFileExtension(url) {
   try {
@@ -14,8 +13,6 @@ function getFileExtension(url) {
 }
 
 function getMimeType(url) {
-  // Optionally, you can pass mimeType as a prop for more accuracy
-  // Here, fallback to extension-based guessing
   const ext = getFileExtension(url);
   if (["jpg","jpeg","png","gif","webp","bmp","svg"].includes(ext)) return "image";
   if (["mp4","webm","ogg","mov","avi","mkv"].includes(ext)) return "video";
@@ -27,9 +24,8 @@ const PDFViewer = ({ url }) => {
   if (!url) return null;
   const ext = getFileExtension(url);
   const mimeType = getMimeType(url);
-  const isGoogleSupported = GOOGLE_VIEWER_EXTS.includes(ext);
 
-  // Exclude image, video, audio from Google Docs Viewer
+  // Images, videos, audio: native preview
   if (mimeType === "image") {
     return (
       <div style={{ textAlign: 'center', marginTop: 32 }}>
@@ -52,8 +48,37 @@ const PDFViewer = ({ url }) => {
     );
   }
 
-  if (isGoogleSupported) {
-    // Google Docs Viewer embed
+  // PDF: direct iframe
+  if (ext === 'pdf') {
+    return (
+      <iframe
+        src={url}
+        title="PDF Viewer"
+        width="100%"
+        height="700px"
+        style={{ border: 'none', borderRadius: 8, boxShadow: '0 2px 8px 0 rgba(0,0,0,0.04)' }}
+        allowFullScreen
+      />
+    );
+  }
+
+  // Microsoft Office Viewer for docx, pptx, xlsx, etc.
+  if (MS_VIEWER_EXTS.includes(ext)) {
+    const msViewerUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(url)}`;
+    return (
+      <iframe
+        src={msViewerUrl}
+        title="Microsoft Office Viewer"
+        width="100%"
+        height="700px"
+        style={{ border: 'none', borderRadius: 8, boxShadow: '0 2px 8px 0 rgba(0,0,0,0.04)' }}
+        allowFullScreen
+      />
+    );
+  }
+
+  // Google Docs Viewer for other supported types
+  if (GOOGLE_VIEWER_EXTS.includes(ext)) {
     const googleUrl = `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
     return (
       <iframe
