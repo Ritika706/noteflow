@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { Card } from '../components/Card';
@@ -43,10 +44,10 @@ export default function UploadPage() {
     if (!f) return;
 
     const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10MB
-    const MAX_PDF_BYTES = 50 * 1024 * 1024; // 50MB for PDFs (server compresses)
+    const MAX_PDF_BYTES = 50 * 1024 * 1024; // 50MB for PDFs
     const isPdf = String(f.type || '').toLowerCase() === 'application/pdf';
 
-    // PDFs can be up to 50MB (server will compress with iLovePDF)
+    // PDFs can be up to 50MB
     if (isPdf && f.size > MAX_PDF_BYTES) {
       toastError('PDF is too large. Max 50MB allowed.');
       return;
@@ -67,39 +68,34 @@ export default function UploadPage() {
 
   async function onSubmit(e) {
     e.preventDefault();
-
     if (!file) return;
-
-    const form = new FormData();
-    form.append('title', title);
-    form.append('subject', subject);
-    form.append('semester', semester);
-    form.append('description', description);
-    form.append('file', file);
-
     setLoading(true);
-    const isPdf = String(file.type || '').toLowerCase() === 'application/pdf';
-    const isLargePdf = isPdf && file.size > 10 * 1024 * 1024; // > 10MB
-    
-    if (isLargePdf) {
-      setUploadStatus('Compressing PDF... This may take a moment.');
-    } else {
-      setUploadStatus('Uploading...');
-    }
-    
+    setUploadStatus('Uploading to storage...');
     try {
-      const res = await api.post('/api/notes', form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      // Upload file directly to Supabase Storage
+      const bucket = 'noteflow-files';
+      const ext = file.name.split('.').pop();
+      const supabasePath = `files/${Date.now()}_${Math.round(Math.random() * 1e9)}.${ext}`;
+      const { data, error } = await supabase.storage.from(bucket).upload(supabasePath, file);
+      if (error) throw error;
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(supabasePath);
+      const fileUrl = publicUrlData.publicUrl;
+      setUploadStatus('Saving note metadata...');
+      // Send metadata to backend
+      const res = await api.post('/api/notes', {
+        title,
+        subject,
+        semester,
+        description,
+        fileUrl,
+        originalName: file.name,
+        mimeType: file.type,
       });
       setUploadStatus('');
       toastSuccess('Note uploaded successfully!');
       navigate(`/note/${res.data.note?._id || ''}`);
     } catch (err) {
-      const status = err?.response?.status;
-      if (status === 413) {
-        toastError('File size is too large. Please upload a file smaller than 10MB.');
-        return;
-      }
       toastError(await getAxiosErrorMessage(err, 'Failed to upload note'));
     } finally {
       setLoading(false);
