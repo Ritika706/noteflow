@@ -4,30 +4,34 @@ import worker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 GlobalWorkerOptions.workerSrc = worker;
 
 
-const PDFViewer = ({ url }) => {
 
-  const canvasRef = useRef(null);
+const PDFViewer = ({ url }) => {
+  const containerRef = useRef(null);
 
   useEffect(() => {
     if (!url) return;
     const renderPDF = async () => {
+      if (!containerRef.current) return;
+      containerRef.current.innerHTML = "";
       const loadingTask = getDocument(url);
       const pdf = await loadingTask.promise;
-      const page = await pdf.getPage(1);
-      const viewport = page.getViewport({ scale: 1.5 });
-      const canvas = canvasRef.current;
-      const context = canvas.getContext('2d');
-      canvas.height = viewport.height;
-      canvas.width = viewport.width;
-      await page.render({ canvasContext: context, viewport }).promise;
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 1.5 });
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        canvas.style.marginBottom = '20px';
+        containerRef.current.appendChild(canvas);
+        await page.render({ canvasContext: context, viewport }).promise;
+      }
     };
     renderPDF();
   }, [url]);
 
   return (
-    <div style={{ width: '100%', textAlign: 'center' }}>
-      <canvas ref={canvasRef} style={{ maxWidth: '100%' }} />
-    </div>
+    <div ref={containerRef} style={{ width: '100%', textAlign: 'center' }} />
   );
 };
 
