@@ -5,21 +5,15 @@
   "main": "src/server.js",
   "scripts": {
     "dev": "nodemon src/server.js",
-    "start": "node src/server.js",
-    "migrate:cloudinary": "node scripts/migrateUploadsToCloudinary.js",
-    "purge:notes": "node scripts/purgeNotes.js",
-    "purge:notes:missing-url": "node scripts/purgeNotes.js --yes --only-missing-fileUrl",
-    "purge:notes:legacy-image-upload": "node scripts/purgeNotes.js --yes --only-legacy-image-upload"
+    "start": "node src/server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@ilovepdf/ilovepdf-nodejs": "^0.3.1",
     "axios": "^1.13.4",
     "bcryptjs": "^3.0.3",
-    "cloudinary": "^2.7.0",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
@@ -27,6 +21,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.1.5",
     "multer": "^2.0.2",
+    "@supabase/supabase-js": "^2.39.7",
     "nodemailer": "^6.9.16",
     "resend": "^6.9.1"
   },
