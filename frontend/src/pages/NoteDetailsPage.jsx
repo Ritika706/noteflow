@@ -44,7 +44,6 @@ export default function NoteDetailsPage() {
   }, []);
 
   const previewUrl = useMemo(() => {
-    // Use backend proxy for preview (avoids Cloudinary CORS/auth issues)
     if (note?.fileUrl) {
       const base = String(apiBaseUrl || '').trim().replace(/\/+$/, '');
       return `${base}/api/notes/${note._id}/preview`;

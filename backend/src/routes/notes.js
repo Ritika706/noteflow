@@ -6,8 +6,9 @@ const { Readable } = require('stream');
 const { Note } = require('../models/Note');
 const { User } = require('../models/User');
 const { authRequired, authOptional } = require('../middleware/auth');
-const { uploadToCloudinary, uploadBufferToCloudinary, isCloudinaryConfigured, deleteFromCloudinary } = require('../lib/cloudinary');
-const { compressPdfWithILovePDF, isILovePdfConfigured } = require('../lib/pdfCompress');
+// Cloudinary removed
+const { supabase } = require('../lib/supabase');
+// PDF compression removed
 const { envBool, envString } = require('../lib/env');
 
 const router = express.Router();
@@ -44,7 +45,7 @@ const allowedMimeTypes = new Set([
 ]);
 
 const baseMulterOptions = {
-  // Allow PDFs up to 50MB; they will be compressed with iLovePDF API before Cloudinary upload.
+  // Allow PDFs up to 50MB
   limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (!file?.mimetype || !allowedMimeTypes.has(file.mimetype)) {
@@ -195,10 +196,7 @@ router.post('/:id/rate', authRequired, async (req, res) => {
 router.post(
   '/',
   authRequired,
-  (req, res, next) => {
-    const middleware = isCloudinaryConfigured() ? uploadMemory.single('file') : uploadDisk.single('file');
-    return middleware(req, res, next);
-  },
+  uploadDisk.single('file'),
   async (req, res) => {
   const { title, subject, semester, description = '' } = req.body || {};
 
@@ -209,88 +207,24 @@ router.post(
     return res.status(400).json({ message: 'file is required' });
   }
 
-  const isHosted = Boolean(process.env.RENDER || process.env.RENDER_GIT_COMMIT || process.env.VERCEL);
-  const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
-  // On hosted environments (Render/Vercel) local disk is not reliable. Default to requiring Cloudinary.
-  const requireCloudinary = envBool('REQUIRE_CLOUDINARY', isHosted || isProd);
-  if (requireCloudinary && !isCloudinaryConfigured()) {
-    return res.status(503).json({
-      message:
-        'Storage is not configured. Please set Cloudinary env variables on the server (CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET) before uploading.',
-    });
-  }
-
+  // Upload file to Supabase Storage
   let fileUrl = '';
-  let cloudinaryPublicId = '';
-  let cloudinaryResourceType = '';
-  if (isCloudinaryConfigured()) {
-    const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10MB
-    const isPdf = String(req.file.mimetype || '').toLowerCase() === 'application/pdf';
-    const isImage = String(req.file.mimetype || '').startsWith('image/');
-    const resourceType = isImage ? 'image' : 'raw';
-
-    // Non-PDFs must be under 10MB
-    if (!isPdf && req.file.size >= MAX_FILE_BYTES) {
-      return res.status(413).json({ message: 'File size too large. Please upload a file smaller than 10MB.' });
-    }
-
-    // Get file buffer
-    let uploadBuffer = req.file?.buffer ? Buffer.from(req.file.buffer) : null;
-    if (!uploadBuffer && req.file?.path) {
-      uploadBuffer = await fs.promises.readFile(req.file.path);
-    }
-    if (!uploadBuffer) {
-      return res.status(400).json({ message: 'file is required' });
-    }
-
-    // Compress PDF with iLovePDF if needed (> 10MB)
-    if (isPdf && uploadBuffer.length >= MAX_FILE_BYTES) {
-      if (!isILovePdfConfigured()) {
-        return res.status(413).json({ message: 'PDF is too large. Please upload a file smaller than 10MB.' });
-      }
-      try {
-        console.log(`[upload] Compressing PDF with iLovePDF (${(uploadBuffer.length / 1024 / 1024).toFixed(2)} MB)...`);
-        uploadBuffer = await compressPdfWithILovePDF(uploadBuffer, { compressionLevel: 'recommended' });
-        console.log(`[upload] Compressed to ${(uploadBuffer.length / 1024 / 1024).toFixed(2)} MB`);
-      } catch (e) {
-        console.error('[upload] iLovePDF error:', e?.message || e);
-        return res.status(413).json({ message: 'PDF is too large. Please upload a file smaller than 10MB.' });
-      }
-
-      // Still too large after compression
-      if (uploadBuffer.length >= MAX_FILE_BYTES) {
-        return res.status(413).json({ message: 'PDF is too large even after compression. Please upload a smaller file.' });
-      }
-    }
-
-    try {
-      const folder = envString('CLOUDINARY_FOLDER', 'noteflow');
-
-      const uploaded = await uploadBufferToCloudinary(uploadBuffer, {
-        folder,
-        resourceType,
-        originalName: req.file.originalname,
-      });
-
-      fileUrl = uploaded?.url || '';
-      cloudinaryPublicId = uploaded?.publicId || '';
-      cloudinaryResourceType = uploaded?.resourceType || '';
-
-      if (!fileUrl) {
-        return res.status(502).json({ message: 'Failed to upload file to storage. Please try again.' });
-      }
-    } catch (e) {
-      const msg = String(e?.error?.message || e?.message || '');
-      console.error('[upload] cloudinary error:', msg || e);
-      return res.status(502).json({
-        message: msg ? `Failed to upload: ${msg}` : 'Failed to upload file to storage. Please try again.',
-      });
-    }
-
-    // Cleanup temp file if we used disk storage
-    if (req.file?.path) {
-      try { await fs.promises.unlink(req.file.path); } catch (e) { /* ignore */ }
-    }
+  try {
+    const bucket = process.env.SUPABASE_BUCKET;
+    const fileExt = path.extname(req.file.originalname);
+    const supabasePath = `${Date.now()}_${Math.round(Math.random() * 1e9)}${fileExt}`;
+    const { data, error } = await supabase.storage.from(bucket).upload(supabasePath, fs.createReadStream(req.file.path), {
+      contentType: req.file.mimetype,
+      upsert: false,
+    });
+    if (error) throw error;
+    // Get public URL
+    const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(supabasePath);
+    fileUrl = publicUrlData.publicUrl;
+    // Remove temp file
+    await fs.promises.unlink(req.file.path);
+  } catch (e) {
+    return res.status(502).json({ message: 'Failed to upload file to Supabase Storage', error: String(e.message || e) });
   }
 
   const note = await Note.create({
@@ -298,11 +232,8 @@ router.post(
     subject: String(subject),
     semester: String(semester),
     description: String(description || ''),
-    // For Cloudinary uploads, multer may not provide a disk filename. Keep this field non-empty for schema compatibility.
-    filePath: req.file.filename || cloudinaryPublicId || String(req.file.originalname || 'upload'),
+    filePath: req.file.filename || String(req.file.originalname || 'upload'),
     fileUrl,
-    cloudinaryPublicId,
-    cloudinaryResourceType,
     originalName: req.file.originalname,
     mimeType: req.file.mimetype,
     downloadCount: 0,
@@ -348,49 +279,10 @@ router.get('/:id/download', authRequired, async (req, res) => {
   const note = await Note.findById(req.params.id);
   if (!note) return res.status(404).json({ message: 'Note not found' });
 
-  if (note.fileUrl) {
-    try {
-      // Files are public, use the stored URL directly
-      const upstream = await fetch(note.fileUrl);
-      if (!upstream.ok) {
-        return res.status(502).json({ message: 'Failed to fetch file from storage' });
-      }
-
-      // Track download only if the file is available
-      await Promise.all([
-        User.updateOne(
-          { _id: req.user.id },
-          { $push: { downloads: { note: note._id, downloadedAt: new Date() } } }
-        ),
-        Note.updateOne({ _id: note._id }, { $inc: { downloadCount: 1 } }),
-      ]);
-
-      const contentType = upstream.headers.get('content-type') || note.mimeType || 'application/octet-stream';
-      res.setHeader('Content-Type', contentType);
-      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(note.originalName)}"`);
-
-      if (!upstream.body) {
-        return res.status(502).json({ message: 'File stream unavailable' });
-      }
-
-      Readable.fromWeb(upstream.body).pipe(res);
-      return;
-    } catch (e) {
-      return res.status(502).json({ message: 'Failed to fetch file from storage' });
-    }
+  if (!note.fileUrl) {
+    return res.status(404).json({ message: 'No file URL found for this note.' });
   }
-
-  const absolutePath = path.join(uploadsDir, note.filePath);
-  try {
-    await fs.promises.access(absolutePath, fs.constants.R_OK);
-  } catch (e) {
-    return res.status(404).json({
-      message:
-        'File not found on server. This can happen after redeploy. Please re-upload this note to restore the file.',
-    });
-  }
-
-  // Track download only if the file exists
+  // Track download
   await Promise.all([
     User.updateOne(
       { _id: req.user.id },
@@ -398,14 +290,14 @@ router.get('/:id/download', authRequired, async (req, res) => {
     ),
     Note.updateOne({ _id: note._id }, { $inc: { downloadCount: 1 } }),
   ]);
-
-  return res.download(absolutePath, note.originalName);
+  // Redirect to Supabase public URL
+  return res.redirect(note.fileUrl);
 });
 
 // Protected: uploader can delete their own uploaded note/file
 router.delete('/:id', authRequired, async (req, res) => {
   const note = await Note.findById(req.params.id).select(
-    'uploadedBy filePath fileUrl cloudinaryPublicId cloudinaryResourceType'
+    'uploadedBy filePath fileUrl'
   );
   if (!note) return res.status(404).json({ message: 'Note not found' });
 
@@ -413,33 +305,20 @@ router.delete('/:id', authRequired, async (req, res) => {
     return res.status(403).json({ message: 'You can only delete your own uploads' });
   }
 
-  // Delete the backing file first (so we don't orphan DB state on storage errors)
-  if (note.cloudinaryPublicId) {
+  // Delete from Supabase Storage if fileUrl exists
+  if (note.fileUrl) {
     try {
-      const result = await deleteFromCloudinary(note.cloudinaryPublicId, {
-        resourceType: note.cloudinaryResourceType || 'raw',
-      });
-
-      const status = String(result?.result || '').toLowerCase();
-      if (status && status !== 'ok' && status !== 'not found') {
-        return res.status(502).json({ message: 'Failed to delete file from storage' });
+      const bucket = process.env.SUPABASE_BUCKET;
+      // Extract path from public URL
+      const url = new URL(note.fileUrl);
+      const pathParts = url.pathname.split('/');
+      const fileKey = pathParts.slice(3).join('/'); // /storage/v1/object/public/bucket/fileKey
+      const { error } = await supabase.storage.from(bucket).remove([fileKey]);
+      if (error) {
+        console.error('[delete] supabase error:', error.message || error);
       }
     } catch (e) {
-      const msg = String(e?.error?.message || e?.message || '');
-      console.error('[delete] cloudinary error:', msg || e);
-      return res.status(502).json({ message: msg ? `Failed to delete: ${msg}` : 'Failed to delete file from storage' });
-    }
-  } else {
-    // Local storage (or legacy records)
-    const absolutePath = path.join(uploadsDir, note.filePath);
-    try {
-      await fs.promises.unlink(absolutePath);
-    } catch (e) {
-      // If the file is missing (e.g. redeploy), still allow deleting the DB record.
-      if (e?.code !== 'ENOENT') {
-        console.error('[delete] local unlink error:', e);
-        return res.status(502).json({ message: 'Failed to delete file from server' });
-      }
+      console.error('[delete] supabase error:', e.message || e);
     }
   }
 

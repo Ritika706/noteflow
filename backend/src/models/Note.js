@@ -8,8 +8,6 @@ const noteSchema = new mongoose.Schema(
     description: { type: String, default: '' },
     filePath: { type: String, required: true },
     fileUrl: { type: String, default: '' },
-    cloudinaryPublicId: { type: String, default: '' },
-    cloudinaryResourceType: { type: String, default: '' },
     originalName: { type: String, required: true },
     mimeType: { type: String, required: true },
     downloadCount: { type: Number, default: 0 },
