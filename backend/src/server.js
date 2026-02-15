@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 dotenv.config();
 
@@ -14,7 +16,20 @@ const { User } = require('./models/User');
 const mongoose = require('mongoose');
 const { envBool, envString } = require('./lib/env');
 
+
 const app = express();
+
+// Security: Set HTTP headers
+app.use(helmet());
+
+// Security: Rate limiting (100 requests per 15 min per IP)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/', limiter);
 
 app.use((req, res, next) => {
   res.setTimeout(10 * 60 * 1000); // 10 minutes
@@ -103,22 +118,30 @@ app.use('/api/auth', authRouter);
 app.use('/api/notes', notesRouter);
 app.use('/api/me', meRouter);
 
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({ message: 'Internal server error' });
-});
 
-async function start() {
-  if (!process.env.JWT_SECRET) {
-    throw new Error('JWT_SECRET is missing in environment');
+// Centralized error handler
+app.use((err, req, res, next) => {
+  // Log error details
+  if (err && err.status && err.status < 500) {
+    // Client error
+    console.warn('[Client error]', err.message || err);
+  } else {
+    // Server error
+    console.error('[Server error]', err && err.stack ? err.stack : err);
   }
 
-  await connectDb();
-  const port = Number(process.env.PORT || 5000);
-  app.listen(port, () => console.log(`✅ API listening on ${port}`));
-}
-
-start().catch((err) => {
-  console.error('Failed to start server:', err);
-  process.exit(1);
+  // Determine status code
+  const status = err.status || err.statusCode || 500;
+  // Avoid leaking stack traces in production
+  const isProd = process.env.NODE_ENV === 'production';
+  const response = {
+    message: err.message || 'Internal Server Error',
+  };
+  if (!isProd && err.stack) {
+    response.stack = err.stack;
+  }
+  res.status(status).json(response);
 });
+
+// Export app for testing and import in start.js
+module.exports = app;
