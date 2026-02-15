@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import { toastError, toastSuccess } from '../lib/toast';
 import { Card } from '../components/Card';
 import { Input } from '../components/Input';
-import { Button } from '../components/Button';
+import Button from '../components/Button';
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();

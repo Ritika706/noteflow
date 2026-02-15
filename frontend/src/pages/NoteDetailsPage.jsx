@@ -6,7 +6,7 @@ import { isLoggedIn } from '../lib/auth';
 import { toastError, toastInfo, toastSuccess } from '../lib/toast';
 import { getAxiosErrorMessage } from '../lib/axiosError';
 import { Badge } from '../components/Badge';
-import { Button } from '../components/Button';
+import Button from '../components/Button';
 import { Card } from '../components/Card';
 import { Avatar } from '../components/Avatar';
 

@@ -4,7 +4,7 @@ import { api } from '../lib/api';
 import { isLoggedIn } from '../lib/auth';
 import { toastInfo, toastSuccess, toastError } from '../lib/toast';
 import { getAxiosErrorMessage } from '../lib/axiosError';
-import { Button } from '../components/Button';
+import Button from '../components/Button';
 import { Card } from '../components/Card';
 import { Input } from '../components/Input';
 import { Select } from '../components/Select';
