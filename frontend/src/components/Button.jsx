@@ -1,3 +1,4 @@
+import React from 'react';
 import { cn } from '../lib/cn';
 
 const variants = {
@@ -19,7 +20,7 @@ const sizes = {
   lg: 'h-11 px-5 text-base',
 };
 
-export function Button({
+function Button({
   variant = 'default',
   size = 'md',
   className,
@@ -41,3 +42,5 @@ export function Button({
     />
   );
 }
+
+export default Button;

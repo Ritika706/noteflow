@@ -55,10 +55,41 @@ export default function UploadPage() {
     setFile(f);
   }
 
+  function validateFields() {
+    if (!title.trim() || title.length < 2 || title.length > 120) {
+      toastError('Title is required (2-120 chars)');
+      return false;
+    }
+    if (!subject.trim() || subject.length < 2 || subject.length > 60) {
+      toastError('Subject is required (2-60 chars)');
+      return false;
+    }
+    if (!semester || !/^[1-8]$/.test(semester)) {
+      toastError('Semester is required (1-8)');
+      return false;
+    }
+    if (description && description.length > 500) {
+      toastError('Description must be under 500 characters');
+      return false;
+    }
+    if (!file) {
+      toastError('Please select a file to upload');
+      return false;
+    }
+    if (!file.name || file.name.length > 255) {
+      toastError('File name is too long');
+      return false;
+    }
+    if (!file.type || file.type.length < 3 || file.type.length > 100) {
+      toastError('Invalid file type');
+      return false;
+    }
+    return true;
+  }
+
   async function onSubmit(e) {
     e.preventDefault();
-    if (!file) return;
-    console.log('FILE SIZE:', file.size);
+    if (!validateFields()) return;
     setLoading(true);
     setUploadStatus('Uploading to storage...');
     try {
@@ -70,9 +101,7 @@ export default function UploadPage() {
         contentType: file.type,
         upsert: false,
       });
-      console.log('UPLOAD DATA:', data);
       if (error || !data?.path) {
-        console.error('SUPABASE UPLOAD FAILED:', error);
         toastError('Upload failed — file not saved properly');
         setLoading(false);
         setUploadStatus('');
@@ -84,10 +113,10 @@ export default function UploadPage() {
       setUploadStatus('Saving note metadata...');
       // Send metadata to backend
       const res = await api.post('/api/notes', {
-        title,
-        subject,
-        semester,
-        description,
+        title: title.trim(),
+        subject: subject.trim(),
+        semester: semester.trim(),
+        description: description.trim(),
         fileUrl,
         originalName: file.name,
         mimeType: file.type,
