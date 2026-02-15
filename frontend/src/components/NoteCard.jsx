@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Badge } from './Badge';
-import { Button } from './Button';
+import Button from './Button';
 import { cn } from '../lib/cn';
 
 export function NoteCard({ note, onDownload, onDelete, className }) {
