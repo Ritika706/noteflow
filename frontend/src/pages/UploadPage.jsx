@@ -9,8 +9,6 @@ export default function UploadPage() {
 
   const handleFile = (selected) => {
     if (!selected) return;
-
-    // ❌ Block images & audio
     if (
       selected.type.startsWith("image/") ||
       selected.type.startsWith("audio/")
@@ -18,7 +16,6 @@ export default function UploadPage() {
       alert("Images & Audio not allowed");
       return;
     }
-
     setFile(selected);
   };
 
@@ -31,27 +28,18 @@ export default function UploadPage() {
     if (!file || !subject || !topic || !semester) {
       return alert("All fields required");
     }
-
     const filePath = `${Date.now()}-${file.name}`;
-
-    // 1️⃣ Upload to Storage
     const { error: uploadError } = await supabase.storage
       .from("files")
       .upload(filePath, file);
-
     if (uploadError) {
       console.error(uploadError);
       return alert("Upload failed");
     }
-
-    // 2️⃣ Get Public URL
     const { data } = supabase.storage
       .from("files")
       .getPublicUrl(filePath);
-
     const fileUrl = data.publicUrl;
-
-    // 3️⃣ Save metadata to DB
     const { error: dbError } = await supabase.from("notes").insert([
       {
         subject,
@@ -60,12 +48,10 @@ export default function UploadPage() {
         file_url: fileUrl,
       },
     ]);
-
     if (dbError) {
       console.error(dbError);
       return alert("DB Save Failed");
     }
-
     alert("Uploaded Successfully ✅");
     setFile(null);
     setSubject("");
@@ -74,51 +60,53 @@ export default function UploadPage() {
   };
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2>Upload Notes</h2>
-
-      <input
-        type="text"
-        placeholder="Subject"
-        value={subject}
-        onChange={(e) => setSubject(e.target.value)}
-      />
-
-      <input
-        type="text"
-        placeholder="Topic"
-        value={topic}
-        onChange={(e) => setTopic(e.target.value)}
-      />
-
-      <input
-        type="text"
-        placeholder="Semester"
-        value={semester}
-        onChange={(e) => setSemester(e.target.value)}
-      />
-
-      {/* Drag & Drop Area */}
-      <div
-        onDrop={handleDrop}
-        onDragOver={(e) => e.preventDefault()}
-        style={{
-          marginTop: "10px",
-          padding: "20px",
-          border: "2px dashed gray",
-        }}
-      >
-        {file ? file.name : "Drag & Drop File Here"}
-      </div>
-
-      {/* File Select Option */}
-      <input
-        type="file"
-        accept=".pdf,.doc,.docx,.txt,.zip,.rar,.csv,.xlsx,.ppt,.pptx"
-        onChange={(e) => handleFile(e.target.files[0])}
-      />
-
-      <button onClick={handleUpload}>Upload</button>
+    <div className="mx-auto max-w-md p-6 mt-8 rounded-xl bg-white/80 dark:bg-card/70 shadow-lg">
+      <h2 className="font-display text-2xl font-bold mb-6 text-primary">Upload Notes</h2>
+      <form className="space-y-4">
+        <input
+          type="text"
+          placeholder="Subject"
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          className="w-full rounded-xl border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-card/70 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+        />
+        <input
+          type="text"
+          placeholder="Topic"
+          value={topic}
+          onChange={(e) => setTopic(e.target.value)}
+          className="w-full rounded-xl border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-card/70 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+        />
+        <input
+          type="text"
+          placeholder="Semester"
+          value={semester}
+          onChange={(e) => setSemester(e.target.value)}
+          className="w-full rounded-xl border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-card/70 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
+        />
+        <div
+          onDrop={handleDrop}
+          onDragOver={(e) => e.preventDefault()}
+          className="mt-2 p-6 text-center border-2 border-dashed border-primary/40 rounded-2xl bg-muted/60 dark:bg-card/50 transition hover:border-primary/70 cursor-pointer"
+        >
+          <span className="text-base text-slate-700 dark:text-slate-200">
+            {file ? file.name : "Drag & Drop File Here"}
+          </span>
+        </div>
+        <input
+          type="file"
+          accept=".pdf,.doc,.docx,.txt,.zip,.rar,.csv,.xlsx,.ppt,.pptx"
+          onChange={(e) => handleFile(e.target.files[0])}
+          className="block w-full mt-2 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-primary file:text-white file:font-semibold file:cursor-pointer"
+        />
+        <button
+          type="button"
+          onClick={handleUpload}
+          className="w-full mt-4 py-2 rounded-xl bg-primary text-white font-bold text-lg shadow hover:bg-primary/90 transition"
+        >
+          Upload
+        </button>
+      </form>
     </div>
   );
 }
