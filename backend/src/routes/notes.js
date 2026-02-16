@@ -189,6 +189,13 @@ router.post(
         err.status = 400;
         throw err;
       }
+      // Enforce Supabase-only uploads
+      const SUPABASE_URL = process.env.SUPABASE_URL || '';
+      if (!value.fileUrl.includes(SUPABASE_URL)) {
+        const err = new Error('Only Supabase uploads are allowed.');
+        err.status = 400;
+        throw err;
+      }
       const note = await Note.create({
         title: value.title,
         subject: value.subject,
