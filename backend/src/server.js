@@ -53,7 +53,7 @@ app.use(cors({
   exposedHeaders: ['Content-Disposition']
 }));
 
-app.options('/(.*)', cors({
+app.options('*', cors({
   origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
