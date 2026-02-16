@@ -16,6 +16,7 @@ export default defineConfig({
               // Prioritize react-vendor, then pdfjs-vendor, then vendor
               if (/node_modules[\\/]react/.test(id)) return 'react-vendor';
               if (/node_modules[\\/]pdfjs-dist/.test(id)) return 'pdfjs-vendor';
+              if (/node_modules[\\/](lodash|underscore)/.test(id)) return 'vendor';
               return 'vendor';
             }
           },
