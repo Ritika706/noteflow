@@ -1,200 +1,127 @@
-import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { api } from '../lib/api';
-import { Card } from '../components/Card';
-import { Input } from '../components/Input';
-import { Select } from '../components/Select';
-import Button from '../components/Button';
-import { toastError, toastSuccess } from '../lib/toast';
-import { getAxiosErrorMessage } from '../lib/axiosError';
+import { useState } from "react";
+import { supabase } from "../lib/supabase";
+
+import { useState } from "react";
+import { supabase } from "../lib/supabase";
 
 export default function UploadPage() {
-  const navigate = useNavigate();
-  const [title, setTitle] = useState('');
-  const [subject, setSubject] = useState('');
-  const [semester, setSemester] = useState('');
-  const [description, setDescription] = useState('');
   const [file, setFile] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState('');
+  const [subject, setSubject] = useState("");
+  const [topic, setTopic] = useState("");
+  const [semester, setSemester] = useState("");
 
-  const canSubmit = Boolean(title.trim() && subject.trim() && semester && file && !loading);
+  const handleFile = (selected) => {
+    if (!selected) return;
 
-  const fileMeta = useMemo(() => {
-    if (!file) return null;
-    const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
-    return { name: file.name, sizeMb };
-  }, [file]);
-
-  // Allow all file types
-  function isAllowedFile(f) {
-    return true;
-  }
-
-  function pickFile(f) {
-    if (!f) return;
-
-    const MAX_FILE_BYTES = 10 * 1024 * 1024; // 10MB
-    const MAX_PDF_BYTES = 50 * 1024 * 1024; // 50MB for PDFs
-    const isPdf = String(f.type || '').toLowerCase() === 'application/pdf';
-
-    // PDFs can be up to 50MB
-    if (isPdf && f.size > MAX_PDF_BYTES) {
-      toastError('PDF is too large. Max 50MB allowed.');
+    // ❌ Block images & audio
+    if (
+      selected.type.startsWith("image/") ||
+      selected.type.startsWith("audio/")
+    ) {
+      alert("Images & Audio not allowed");
       return;
     }
 
-    // Non-PDFs must be under 10MB
-    if (!isPdf && f.size >= MAX_FILE_BYTES) {
-      toastError('File size too large. Please upload a file smaller than 10MB.');
-      return;
-    }
+    setFile(selected);
+  };
 
-    // No file type restriction
-    setFile(f);
-  }
-
-  function validateFields() {
-    if (!title.trim() || title.length < 2 || title.length > 120) {
-      toastError('Title is required (2-120 chars)');
-      return false;
-    }
-    if (!subject.trim() || subject.length < 2 || subject.length > 60) {
-      toastError('Subject is required (2-60 chars)');
-      return false;
-    }
-    if (!semester || !/^[1-8]$/.test(semester)) {
-      toastError('Semester is required (1-8)');
-      return false;
-    }
-    if (description && description.length > 500) {
-      toastError('Description must be under 500 characters');
-      return false;
-    }
-    if (!file) {
-      toastError('Please select a file to upload');
-      return false;
-    }
-    if (!file.name || file.name.length > 255) {
-      toastError('File name is too long');
-      return false;
-    }
-    if (!file.type || file.type.length < 3 || file.type.length > 100) {
-      toastError('Invalid file type');
-      return false;
-    }
-    return true;
-  }
-
-  async function onSubmit(e) {
+  const handleDrop = (e) => {
     e.preventDefault();
-    if (!validateFields()) return;
-    setLoading(true);
-    setUploadStatus('Uploading to storage...');
-    try {
-      // Upload file directly to Supabase Storage
-      const bucket = 'noteflow-files';
-      const ext = file.name.split('.').pop();
-      // Force correct MIME type for PDFs
-      let mimeType = file.type;
-      if (ext && ext.toLowerCase() === 'pdf') {
-        mimeType = 'application/pdf';
-      }
-      const supabasePath = `files/${Date.now()}_${Math.round(Math.random() * 1e9)}.${ext}`;
-      const { data, error } = await supabase.storage.from(bucket).upload(supabasePath, file, {
-        contentType: mimeType,
-        upsert: false,
-      });
-      if (error || !data?.path) {
-        console.error('Supabase upload error:', error, data);
-        toastError(`Upload failed — file not saved properly. ${error?.message || ''}`);
-        setLoading(false);
-        setUploadStatus('');
-        return;
-      }
-      // Confirm file exists in bucket after upload
-      const { data: statData, error: statError } = await supabase.storage.from(bucket).list('files', { search: supabasePath.split('/').pop() });
-      if (statError || !statData || !statData.some(f => f.name === supabasePath.split('/').pop())) {
-        console.error('Supabase file not found after upload:', statError, statData);
-        toastError('Upload failed — file not found in storage after upload.');
-        setLoading(false);
-        setUploadStatus('');
-        return;
-      }
-      // Get public URL
-      const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(supabasePath);
-      const fileUrl = publicUrlData.publicUrl;
-      if (!fileUrl) {
-        toastError('Upload failed — could not get public URL for file.');
-        setLoading(false);
-        setUploadStatus('');
-        return;
-      }
-      setUploadStatus('Saving note metadata...');
-      // Send metadata to backend
-      const res = await api.post('/api/notes', {
-        title: title.trim(),
-        subject: subject.trim(),
-        semester: semester.trim(),
-        description: description.trim(),
-        fileUrl,
-        originalName: file.name,
-        mimeType,
-      });
-      setUploadStatus('');
-      toastSuccess('Note uploaded successfully!');
-      navigate(`/note/${res.data.note?._id || ''}`);
-    } catch (err) {
-      console.error('Upload exception:', err);
-      toastError(await getAxiosErrorMessage(err, 'Failed to upload note'));
-    } finally {
-      setLoading(false);
-      setUploadStatus('');
+    handleFile(e.dataTransfer.files[0]);
+  };
+
+  const handleUpload = async () => {
+    if (!file || !subject || !topic || !semester) {
+      return alert("All fields required");
     }
-  }
+
+    const filePath = `${Date.now()}-${file.name}`;
+
+    // 1️⃣ Upload to Storage
+    const { error: uploadError } = await supabase.storage
+      .from("files")
+      .upload(filePath, file);
+
+    if (uploadError) {
+      console.error(uploadError);
+      return alert("Upload failed");
+    }
+
+    // 2️⃣ Get Public URL
+    const { data } = supabase.storage
+      .from("files")
+      .getPublicUrl(filePath);
+
+    const fileUrl = data.publicUrl;
+
+    // 3️⃣ Save metadata to DB
+    const { error: dbError } = await supabase.from("notes").insert([
+      {
+        subject,
+        topic,
+        semester,
+        file_url: fileUrl,
+      },
+    ]);
+
+    if (dbError) {
+      console.error(dbError);
+      return alert("DB Save Failed");
+    }
+
+    alert("Uploaded Successfully ✅");
+    setFile(null);
+    setSubject("");
+    setTopic("");
+    setSemester("");
+  };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
-      <div>
-        <h1 className="font-display text-3xl font-bold">
-          <span className="bg-gradient-to-r from-primary to-sky-500 bg-clip-text text-transparent">Share Your Notes</span>
-        </h1>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
-          Upload PDF, images, or Word documents.
-        </p>
+    <div style={{ padding: "20px" }}>
+      <h2>Upload Notes</h2>
+
+      <input
+        type="text"
+        placeholder="Subject"
+        value={subject}
+        onChange={(e) => setSubject(e.target.value)}
+      />
+
+      <input
+        type="text"
+        placeholder="Topic"
+        value={topic}
+        onChange={(e) => setTopic(e.target.value)}
+      />
+
+      <input
+        type="text"
+        placeholder="Semester"
+        value={semester}
+        onChange={(e) => setSemester(e.target.value)}
+      />
+
+      {/* Drag & Drop Area */}
+      <div
+        onDrop={handleDrop}
+        onDragOver={(e) => e.preventDefault()}
+        style={{
+          marginTop: "10px",
+          padding: "20px",
+          border: "2px dashed gray",
+        }}
+      >
+        {file ? file.name : "Drag & Drop File Here"}
       </div>
 
-      <Card className="p-6">
-        <form className="space-y-4" onSubmit={onSubmit}>
-          <div>
-            <label className="text-sm font-medium">Title</label>
-            <Input className="mt-1" value={title} onChange={(e) => setTitle(e.target.value)} required />
-          </div>
+      {/* File Select Option */}
+      <input
+        type="file"
+        accept=".pdf,.doc,.docx,.txt,.zip,.rar,.csv,.xlsx,.ppt,.pptx"
+        onChange={(e) => handleFile(e.target.files[0])}
+      />
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="text-sm font-medium">Subject</label>
-              <Input className="mt-1" value={subject} onChange={(e) => setSubject(e.target.value)} required />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Semester</label>
-              <Select className="mt-1" value={semester} onChange={(e) => setSemester(e.target.value)} required>
-                <option value="" disabled>Select…</option>
-                {Array.from({ length: 8 }).map((_, i) => {
-                  const v = String(i + 1);
-                  return (
-                    <option key={v} value={v}>{v}</option>
-                  );
-                })}
-              </Select>
-            </div>
-          </div>
-
-          <Button className="w-full" type="submit" disabled={!canSubmit}>
-            {loading ? (uploadStatus || 'Uploading…') : 'Upload Note'}
-          </Button>
-        </form>
-      </Card>
+      <button onClick={handleUpload}>Upload</button>
     </div>
   );
 }
