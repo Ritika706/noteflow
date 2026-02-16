@@ -25,7 +25,8 @@
     "mongoose": "^9.1.5",
     "multer": "^2.0.2",
     "nodemailer": "^6.9.16",
-    "resend": "^6.9.1"
+    "resend": "^6.9.1",
+    "express-rate-limit": "^7.0.0"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.29.0",

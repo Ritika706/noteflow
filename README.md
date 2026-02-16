@@ -1,54 +1,90 @@
-# NOTES-SHARING-SYSTEM-PROJECT-NoteFlow-
 
-NoteFlow is a MERN Notes Sharing System where students can:
-- Register/Login (bcrypt password hashing + JWT auth)
-- Browse notes (search + filter)
-- Upload notes (protected)
-- Preview notes (PDF/image via MIME type)
-- Download notes (protected + download tracking)
-- View Profile (My Uploads + My Downloads)
+# NoteFlow – Notes Sharing System
 
-## Tech Stack
+![Build](https://img.shields.io/badge/build-passing-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Stack](https://img.shields.io/badge/stack-MERN-blueviolet)
 
-- Frontend: React (Vite) + Tailwind CSS + Axios + React Router
-- Backend: Node.js + Express + MongoDB (Mongoose) + JWT + Multer + bcryptjs
+NoteFlow is a modern MERN stack notes sharing platform for students.
 
-## Setup (Local)
+## ✨ Features
 
-### 1) Backend
+- User registration & login (bcrypt + JWT)
+- Browse, search, and filter notes
+- Secure note upload & download (with tracking)
+- PDF/image preview
+- User profile: uploads & downloads
+- Responsive UI (Tailwind CSS)
+- Automated backend & frontend tests
 
-Create `backend/.env` using `backend/.env.example`:
+## 🗂️ Project Structure
 
-Required:
-- `MONGODB_URI`
-- `JWT_SECRET`
+- backend/ – Express API, MongoDB, Supabase integration
+- frontend/ – React (Vite), Tailwind, API calls
+- uploads/ – Uploaded files
 
-Run:
+## 🚀 Quick Start
 
-`cd backend`
+### 1. Backend Setup
 
-`npm run dev`
+1. Copy `backend/.env.example` to `backend/.env` and fill in:
+	- `MONGODB_URI`, `JWT_SECRET`, `SUPABASE_URL`, etc.
+2. Install dependencies:
+	```sh
+	cd backend
+	npm install
+	```
+3. Start the server:
+	```sh
+	npm run dev
+	```
+	Runs at http://localhost:5000
 
-Backend runs on `http://localhost:5000`.
+### 2. Frontend Setup
 
-### 2) Frontend
+1. Copy `frontend/.env.example` to `frontend/.env` and fill in as needed.
+2. Install dependencies:
+	```sh
+	cd frontend
+	npm install
+	```
+3. Start the dev server:
+	```sh
+	npm run dev
+	```
+	Runs at http://localhost:5173
 
-Create `frontend/.env` using `frontend/.env.example`.
+## 🧪 Running Tests
 
-Run:
+### Backend
+```sh
+cd backend
+npx jest --config jest.config.js --runInBand
+```
 
-`cd frontend`
+### Frontend
+```sh
+cd frontend
+npx jest
+```
 
-`npm run dev`
+## 📚 API Endpoints
 
-Frontend runs on `http://localhost:5173`.
+- `POST /api/auth/register` – Register
+- `POST /api/auth/login` – Login
+- `GET /api/notes` – List/search notes
+- `GET /api/notes/:id` – Note details
+- `POST /api/notes` – Upload (protected)
+- `GET /api/notes/:id/download` – Download (protected)
+- `GET /api/me` – Profile (protected)
 
-## API Endpoints (Backend)
+## 🤝 Contributing
 
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-- `GET /api/notes` (public list + search/filter)
-- `GET /api/notes/:id` (public details)
-- `POST /api/notes` (protected upload, form-data `file`)
-- `GET /api/notes/:id/download` (protected download + tracking)
-- `GET /api/me` (protected profile: user + uploads + downloads)
+1. Fork this repo
+2. Create a feature branch
+3. Commit and push
+4. Open a pull request
+
+## 📄 License
+
+MIT
