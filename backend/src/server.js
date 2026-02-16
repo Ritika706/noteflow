@@ -39,36 +39,27 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-const corsOriginRaw = process.env.CORS_ORIGIN || 'http://localhost:5173';
-const corsAllowList = corsOriginRaw
-  .split(',')
-  .map((s) => s.trim())
-  .filter(Boolean);
 
-function isCorsOriginAllowed(origin) {
-  // Allow non-browser requests (no Origin header)
-  if (!origin) return true;
+const allowedOrigins = [
+  'https://noteflow-two-phi.vercel.app',
+  'http://localhost:5173'
+];
 
-  return corsAllowList.some((allowed) => {
-    if (allowed === '*') return true;
-    if (allowed.startsWith('*.')) {
-      // e.g. '*.vercel.app' matches 'https://foo.vercel.app'
-      return origin.endsWith(allowed.slice(1));
-    }
-    return origin === allowed;
-  });
-}
-
-const corsOptions = {
-  origin: (origin, callback) => {
-    callback(null, isCorsOriginAllowed(origin));
-  },
+app.use(cors({
+  origin: allowedOrigins,
   credentials: true,
-  exposedHeaders: ['Content-Disposition'],
-};
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Disposition']
+}));
 
-app.use(cors(corsOptions));
-app.options(/.*/, cors(corsOptions));
+app.options('*', cors({
+  origin: allowedOrigins,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Disposition']
+}));
 
 // Public preview support
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
