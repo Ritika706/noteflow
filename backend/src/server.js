@@ -40,13 +40,10 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 
-const allowedOrigins = [
-  'https://noteflow-two-phi.vercel.app',
-  'http://localhost:5173'
-];
 
+// TEMP: Allow all origins for debugging CORS
 app.use(cors({
-  origin: allowedOrigins,
+  origin: '*',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
