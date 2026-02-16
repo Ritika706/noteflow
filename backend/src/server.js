@@ -143,5 +143,17 @@ app.use((err, req, res, next) => {
   res.status(status).json(response);
 });
 
-// Export app for testing and import in start.js
-module.exports = app;
+
+// ===== START SERVER =====
+const PORT = process.env.PORT || 5000;
+
+connectDb()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('❌ Database connection failed:', err);
+    process.exit(1);
+  });
