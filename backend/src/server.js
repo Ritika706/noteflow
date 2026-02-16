@@ -41,9 +41,9 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 
 
-// TEMP: Allow all origins for debugging CORS
+// Allow only the deployed frontend domain for CORS
 app.use(cors({
-  origin: '*',
+  origin: 'https://noteflow-two-phi.vercel.app',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
