@@ -77,13 +77,16 @@ export default function UploadPage() {
           onChange={(e) => setTopic(e.target.value)}
           className="w-full rounded-xl border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-card/70 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
         />
-        <input
-          type="text"
-          placeholder="Semester"
+        <select
           value={semester}
-          onChange={(e) => setSemester(e.target.value)}
+          onChange={e => setSemester(e.target.value)}
           className="w-full rounded-xl border border-slate-200/80 dark:border-white/10 bg-white/80 dark:bg-card/70 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/40"
-        />
+        >
+          <option value="" disabled>Select Semester</option>
+          {[...Array(8)].map((_, i) => (
+            <option key={i + 1} value={i + 1}>{i + 1}</option>
+          ))}
+        </select>
         <div
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
