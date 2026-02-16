@@ -53,13 +53,6 @@ app.use(cors({
   exposedHeaders: ['Content-Disposition']
 }));
 
-app.options('*', cors({
-  origin: allowedOrigins,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['Content-Disposition']
-}));
 
 // Public preview support
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
