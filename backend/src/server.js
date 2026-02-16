@@ -54,7 +54,6 @@ app.use(cors({
 
 
 // Public preview support
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 app.get('/health', async (req, res) => {
   const base = { ok: true };

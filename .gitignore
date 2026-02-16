@@ -15,7 +15,7 @@
 frontend/dist/
 
 # uploads
-backend/uploads/
+**/uploads/
 
 # OS/editor
 .DS_Store

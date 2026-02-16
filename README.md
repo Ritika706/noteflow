@@ -7,6 +7,12 @@
 
 NoteFlow is a modern MERN stack notes sharing platform for students.
 
+# noteflow
+
+## Environment Variables on Vercel
+
+For production, set all environment variables (Supabase keys, JWT secret, etc.) in the Vercel dashboard for both frontend and backend. Do not rely on .env files in production.
+
 ## ✨ Features
 
 - User registration & login (bcrypt + JWT)
@@ -27,8 +33,7 @@ NoteFlow is a modern MERN stack notes sharing platform for students.
 
 ### 1. Backend Setup
 
-1. Copy `backend/.env.example` to `backend/.env` and fill in:
-	- `MONGODB_URI`, `JWT_SECRET`, `SUPABASE_URL`, etc.
+1. Set all environment variables in the Vercel dashboard for production.
 2. Install dependencies:
 	```sh
 	cd backend
@@ -42,7 +47,7 @@ NoteFlow is a modern MERN stack notes sharing platform for students.
 
 ### 2. Frontend Setup
 
-1. Copy `frontend/.env.example` to `frontend/.env` and fill in as needed.
+1. Set all environment variables in the Vercel dashboard for production.
 2. Install dependencies:
 	```sh
 	cd frontend
