@@ -219,9 +219,10 @@ router.get('/:id/preview', async (req, res) => {
       return res.status(404).send('Preview not available - no file URL stored');
     }
 
-    // Fetch file from Supabase storage (public URL)
-    const response = await fetch(note.fileUrl);
-    if (!response.ok) {
+    // Fetch file from Supabase storage (public URL) using axios for streaming
+    const axios = require('axios');
+    const fileResponse = await axios.get(note.fileUrl, { responseType: 'stream' });
+    if (fileResponse.status !== 200) {
       return res.status(502).send('Failed to fetch file from storage');
     }
 
@@ -230,7 +231,7 @@ router.get('/:id/preview', async (req, res) => {
     res.setHeader('Content-Disposition', `inline; filename="${note.originalName || 'file.pdf'}"`);
 
     // Stream file to client
-    response.body.pipe(res);
+    fileResponse.data.pipe(res);
   } catch (e) {
     return res.status(502).send('Failed to fetch file');
   }
