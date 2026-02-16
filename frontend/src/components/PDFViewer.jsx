@@ -94,26 +94,31 @@ const PDFViewer = ({ url }) => {
 
   // Fallback: download link for unsupported types
   return (
-    <div style={{ textAlign: 'center', marginTop: 32 }}>
-      <div style={{ marginBottom: 16, color: '#555' }}>
-        This file type can’t be previewed in the browser.<br />
-        Please download.
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
+      <div style={{ background: '#1e293b', borderRadius: 12, boxShadow: '0 2px 8px rgba(30,41,59,0.08)', padding: 32, maxWidth: 420, width: '100%', textAlign: 'center' }}>
+        <div style={{ marginBottom: 20, color: '#cbd5e1', fontSize: 18, fontWeight: 500 }}>
+          <span style={{ display: 'block', marginBottom: 8 }}>This file type can’t be previewed.</span>
+          <span style={{ fontSize: 15, color: '#64748b' }}>Please download to view.</span>
+        </div>
+        <a
+          href={url}
+          download
+          style={{
+            display: 'inline-block',
+            padding: '12px 28px',
+            background: 'linear-gradient(90deg,#2563eb,#38bdf8)',
+            color: '#fff',
+            borderRadius: 8,
+            textDecoration: 'none',
+            fontWeight: 'bold',
+            fontSize: 16,
+            boxShadow: '0 1px 4px rgba(37,99,235,0.12)',
+            transition: 'background 0.2s',
+          }}
+        >
+          Download File
+        </a>
       </div>
-      <a
-        href={url}
-        download
-        style={{
-          display: 'inline-block',
-          padding: '10px 24px',
-          background: '#2563eb',
-          color: '#fff',
-          borderRadius: 6,
-          textDecoration: 'none',
-          fontWeight: 'bold',
-        }}
-      >
-        Download File
-      </a>
     </div>
   );
 };

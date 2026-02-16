@@ -42,9 +42,9 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 
 // Allow only the deployed frontend domain for CORS
+// Allow all origins for CORS (for testing PDF iframe loading)
 app.use(cors({
-  origin: 'https://noteflow-two-phi.vercel.app',
-  credentials: true,
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   exposedHeaders: ['Content-Disposition']
