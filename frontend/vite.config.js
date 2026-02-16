@@ -13,8 +13,9 @@ export default defineConfig({
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {
-              if (id.includes('react')) return 'react-vendor';
-              if (id.includes('pdfjs-dist')) return 'pdfjs-vendor';
+              // Prioritize react-vendor, then pdfjs-vendor, then vendor
+              if (/node_modules[\\/]react/.test(id)) return 'react-vendor';
+              if (/node_modules[\\/]pdfjs-dist/.test(id)) return 'pdfjs-vendor';
               return 'vendor';
             }
           },
