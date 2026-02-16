@@ -96,13 +96,28 @@ export default function UploadPage() {
       // Upload file directly to Supabase Storage
       const bucket = 'noteflow-files';
       const ext = file.name.split('.').pop();
+      // Force correct MIME type for PDFs
+      let mimeType = file.type;
+      if (ext && ext.toLowerCase() === 'pdf') {
+        mimeType = 'application/pdf';
+      }
       const supabasePath = `files/${Date.now()}_${Math.round(Math.random() * 1e9)}.${ext}`;
       const { data, error } = await supabase.storage.from(bucket).upload(supabasePath, file, {
-        contentType: file.type,
+        contentType: mimeType,
         upsert: false,
       });
       if (error || !data?.path) {
-        toastError('Upload failed — file not saved properly');
+        console.error('Supabase upload error:', error, data);
+        toastError(`Upload failed — file not saved properly. ${error?.message || ''}`);
+        setLoading(false);
+        setUploadStatus('');
+        return;
+      }
+      // Confirm file exists in bucket after upload
+      const { data: statData, error: statError } = await supabase.storage.from(bucket).list('files', { search: supabasePath.split('/').pop() });
+      if (statError || !statData || !statData.some(f => f.name === supabasePath.split('/').pop())) {
+        console.error('Supabase file not found after upload:', statError, statData);
+        toastError('Upload failed — file not found in storage after upload.');
         setLoading(false);
         setUploadStatus('');
         return;
@@ -110,6 +125,12 @@ export default function UploadPage() {
       // Get public URL
       const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(supabasePath);
       const fileUrl = publicUrlData.publicUrl;
+      if (!fileUrl) {
+        toastError('Upload failed — could not get public URL for file.');
+        setLoading(false);
+        setUploadStatus('');
+        return;
+      }
       setUploadStatus('Saving note metadata...');
       // Send metadata to backend
       const res = await api.post('/api/notes', {
@@ -119,12 +140,13 @@ export default function UploadPage() {
         description: description.trim(),
         fileUrl,
         originalName: file.name,
-        mimeType: file.type,
+        mimeType,
       });
       setUploadStatus('');
       toastSuccess('Note uploaded successfully!');
       navigate(`/note/${res.data.note?._id || ''}`);
     } catch (err) {
+      console.error('Upload exception:', err);
       toastError(await getAxiosErrorMessage(err, 'Failed to upload note'));
     } finally {
       setLoading(false);
