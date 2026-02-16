@@ -9,7 +9,16 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      // external removed to allow bundling pdfjs-dist
+        // external removed to allow bundling pdfjs-dist
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('react')) return 'react-vendor';
+              if (id.includes('pdfjs-dist')) return 'pdfjs-vendor';
+              return 'vendor';
+            }
+          },
+        },
     },
   },
 })
