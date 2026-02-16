@@ -213,23 +213,26 @@ router.get('/:id/preview', async (req, res) => {
   try {
     const note = await Note.findById(req.params.id).select('fileUrl mimeType originalName').lean();
     if (!note) {
-      const err = new Error('Note not found');
-      err.status = 404;
-      throw err;
+      return res.status(404).send('Note not found');
     }
-
     if (!note.fileUrl) {
-      const err = new Error('Preview not available - no file URL stored');
-      err.status = 404;
-      throw err;
+      return res.status(404).send('Preview not available - no file URL stored');
     }
 
-    // Always redirect to Supabase public URL for preview
-    return res.redirect(note.fileUrl);
+    // Fetch file from Supabase storage (public URL)
+    const response = await fetch(note.fileUrl);
+    if (!response.ok) {
+      return res.status(502).send('Failed to fetch file from storage');
+    }
+
+    // Set headers for inline PDF viewing
+    res.setHeader('Content-Type', note.mimeType || 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${note.originalName || 'file.pdf'}"`);
+
+    // Stream file to client
+    response.body.pipe(res);
   } catch (e) {
-    e.status = 502;
-    e.message = 'Failed to fetch file';
-    return next(e);
+    return res.status(502).send('Failed to fetch file');
   }
 });
 
