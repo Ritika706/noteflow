@@ -223,12 +223,21 @@ router.get('/:id/preview', async (req, res) => {
     const axios = require('axios');
     const fileResponse = await axios.get(note.fileUrl, { responseType: 'stream' });
     if (fileResponse.status !== 200) {
+      console.error('Failed to fetch file from storage', fileResponse.status, fileResponse.statusText);
       return res.status(502).send('Failed to fetch file from storage');
     }
 
-    // Set headers for inline PDF viewing
-    res.setHeader('Content-Type', note.mimeType || 'application/pdf');
-    res.setHeader('Content-Disposition', `inline; filename="${note.originalName || 'file.pdf'}"`);
+    // Only set PDF headers for PDFs
+    const isPdf = (note.mimeType === 'application/pdf' || note.originalName?.toLowerCase().endsWith('.pdf'));
+    if (isPdf) {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="${note.originalName || 'file.pdf'}"`);
+    } else {
+      res.setHeader('Content-Type', note.mimeType || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `inline; filename="${note.originalName || 'file'}"`);
+    }
+
+    console.log('Previewing file:', note.originalName, 'as', res.getHeader('Content-Type'));
 
     // Stream file to client
     fileResponse.data.pipe(res);
