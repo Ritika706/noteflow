@@ -1,9 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
 
-import { useState } from "react";
-import { supabase } from "../lib/supabase";
-
 export default function UploadPage() {
   const [file, setFile] = useState(null);
   const [subject, setSubject] = useState("");
