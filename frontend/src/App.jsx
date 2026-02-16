@@ -42,6 +42,7 @@ export default function App() {
                 <ProfilePage />
               </ProtectedRoute>
             }
+            
           />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
