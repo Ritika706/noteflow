@@ -18,6 +18,8 @@ const { envBool, envString } = require('./lib/env');
 
 
 const app = express();
+// Enable trust proxy for correct client IP detection behind proxies
+app.set('trust proxy', 1);
 
 // Security: Set HTTP headers
 app.use(helmet());
