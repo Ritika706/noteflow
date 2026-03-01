@@ -17,8 +17,7 @@ export default function NoteDetailsPage() {
   const [viewer, setViewer] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [fullscreen, setFullscreen] = useState(false);
-  const previewWrapRef = useRef(null);
+  const previewRef = useRef(null);
 
   useEffect(() => {
     (async () => {
@@ -35,14 +34,6 @@ export default function NoteDetailsPage() {
       }
     })();
   }, [id]);
-
-  useEffect(() => {
-    function onFsChange() {
-      setFullscreen(Boolean(document.fullscreenElement));
-    }
-    document.addEventListener('fullscreenchange', onFsChange);
-    return () => document.removeEventListener('fullscreenchange', onFsChange);
-  }, []);
 
   // Use direct Supabase public URL for preview (Google Docs Viewer needs public access)
   const previewUrl = note?.fileUrl || null;
@@ -130,20 +121,6 @@ export default function NoteDetailsPage() {
       window.dispatchEvent(new Event('noteflow:topRatedUpdated'));
     } catch (e) {
       toastError(e?.response?.data?.message || 'Rating failed');
-    }
-  }
-
-  async function toggleFullscreen() {
-    const el = previewWrapRef.current;
-    if (!el) return;
-    try {
-      if (document.fullscreenElement) {
-        await document.exitFullscreen();
-      } else {
-        await el.requestFullscreen();
-      }
-    } catch {
-      // ignore
     }
   }
 
@@ -238,10 +215,10 @@ export default function NoteDetailsPage() {
           {previewUrl ? (
             <button
               type="button"
-              onClick={toggleFullscreen}
+              onClick={() => previewRef.current?.requestFullscreen?.()}
               className="rounded-xl px-3 py-2 text-sm font-medium bg-sky-200 text-black hover:bg-sky-300 dark:bg-sky-300 dark:text-slate-900"
             >
-              {fullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+              Fullscreen
             </button>
           ) : null}
         </div>
@@ -250,16 +227,8 @@ export default function NoteDetailsPage() {
             Preview unavailable because this file is not stored in cloud storage. Please re-upload the note.
           </div>
         ) : (
-          <div
-            ref={previewWrapRef}
-            className={
-              fullscreen
-                ? 'fixed inset-0 z-50 overflow-hidden bg-white w-full h-full'
-                : 'mt-4 overflow-hidden rounded-xl border border-slate-200/70 dark:border-white/10 bg-white'
-            }
-            style={fullscreen ? { width: '100vw', height: '100vh' } : {}}
-          >
-            <FileViewer url={previewUrl} fullscreen={fullscreen} />
+          <div ref={previewRef} className="mt-4 overflow-hidden rounded-xl border border-slate-200/70 dark:border-white/10 bg-white">
+            <FileViewer url={previewUrl} />
           </div>
         )}
       </Card>

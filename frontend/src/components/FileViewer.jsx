@@ -15,20 +15,20 @@ function getViewerUrl(url) {
   return `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
 }
 
-const FileViewer = ({ url, fullscreen = false }) => {
+const FileViewer = ({ url }) => {
   if (!url) return null;
   const ext = getFileExtension(url);
 
-  const iframeHeight = fullscreen ? '100%' : '700px';
+  const iframeHeight = '700px';
 
   // Images: native preview
   if (IMAGE_EXTS.includes(ext)) {
     return (
-      <div className={fullscreen ? 'flex items-center justify-center h-full bg-black' : 'mt-4 text-center'}>
+      <div className="mt-4 text-center">
         <img
           src={url}
           alt="Preview"
-          className={fullscreen ? 'max-h-full max-w-full object-contain' : 'mx-auto max-w-full rounded-lg shadow-sm'}
+          className="mx-auto max-w-full rounded-lg shadow-sm"
         />
       </div>
     );
@@ -37,11 +37,11 @@ const FileViewer = ({ url, fullscreen = false }) => {
   // Videos: native preview
   if (VIDEO_EXTS.includes(ext)) {
     return (
-      <div className={fullscreen ? 'flex items-center justify-center h-full bg-black' : 'mt-4 text-center'}>
+      <div className="mt-4 text-center">
         <video
           src={url}
           controls
-          className={fullscreen ? 'max-h-full max-w-full' : 'mx-auto max-w-full rounded-lg shadow-sm'}
+          className="mx-auto max-w-full rounded-lg shadow-sm"
         />
       </div>
     );
@@ -50,7 +50,7 @@ const FileViewer = ({ url, fullscreen = false }) => {
   // Audio: native preview
   if (AUDIO_EXTS.includes(ext)) {
     return (
-      <div className={fullscreen ? 'flex items-center justify-center h-full bg-white' : 'mt-4 text-center'}>
+      <div className="mt-4 text-center">
         <audio src={url} controls className="w-full" />
       </div>
     );
