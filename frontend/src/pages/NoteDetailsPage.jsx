@@ -1,4 +1,4 @@
-import FileViewer from '../components/PDFViewer';
+import FileViewer from '../components/FileViewer';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
@@ -254,11 +254,12 @@ export default function NoteDetailsPage() {
             ref={previewWrapRef}
             className={
               fullscreen
-                ? 'mt-0 overflow-hidden rounded-none border-0 bg-white w-screen h-screen'
+                ? 'fixed inset-0 z-50 overflow-hidden bg-white w-full h-full'
                 : 'mt-4 overflow-hidden rounded-xl border border-slate-200/70 dark:border-white/10 bg-white'
             }
+            style={fullscreen ? { width: '100vw', height: '100vh' } : {}}
           >
-            <FileViewer url={previewUrl} />
+            <FileViewer url={previewUrl} fullscreen={fullscreen} />
           </div>
         )}
       </Card>

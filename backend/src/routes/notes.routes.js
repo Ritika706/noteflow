@@ -10,7 +10,7 @@ const Joi = require('joi');
 const router = express.Router();
 
 // Public list + search/filter
-router.get('/', async (req, res) => {
+router.get('/', async (req, res, next) => {
   try {
     const { q, subject, semester } = req.query;
 
@@ -46,7 +46,7 @@ router.get('/top-rated', async (req, res) => {
 });
 
 // Public details (with optional viewer flags)
-router.get('/:id', authOptional, async (req, res) => {
+router.get('/:id', authOptional, async (req, res, next) => {
 
   try {
     const note = await Note.findById(req.params.id)
@@ -83,7 +83,7 @@ router.get('/:id', authOptional, async (req, res) => {
 });
 
 // Protected: toggle like
-router.post('/:id/like', authRequired, async (req, res) => {
+router.post('/:id/like', authRequired, async (req, res, next) => {
 
   try {
     const note = await Note.findById(req.params.id).select('likedBy likesCount');
@@ -121,7 +121,7 @@ router.post('/:id/like', authRequired, async (req, res) => {
 });
 
 // Protected: rate note (1-5)
-router.post('/:id/rate', authRequired, async (req, res) => {
+router.post('/:id/rate', authRequired, async (req, res, next) => {
   try {
     const value = Number(req.body?.value);
     if (!Number.isFinite(value) || value < 1 || value > 5) {
@@ -213,7 +213,7 @@ router.post(
 );
 
 // Protected download + track
-router.get('/:id/download', authRequired, async (req, res) => {
+router.get('/:id/download', authRequired, async (req, res, next) => {
   try {
     const note = await Note.findById(req.params.id);
     if (!note) {
@@ -243,7 +243,7 @@ router.get('/:id/download', authRequired, async (req, res) => {
 });
 
 // Protected: uploader can delete their own uploaded note/file
-router.delete('/:id', authRequired, async (req, res) => {
+router.delete('/:id', authRequired, async (req, res, next) => {
   try {
     const note = await Note.findById(req.params.id).select(
       'uploadedBy filePath fileUrl'
