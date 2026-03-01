@@ -86,3 +86,16 @@
     @apply bg-white/60 dark:bg-card/60 backdrop-blur border border-white/20 dark:border-white/10;
   }
 }
+
+/* Fullscreen preview: fill entire screen */
+div:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  background: white;
+}
+div:fullscreen iframe,
+div:fullscreen img,
+div:fullscreen video {
+  width: 100% !important;
+  height: 100% !important;
+}
