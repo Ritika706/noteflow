@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
+import { api } from "../lib/api";
 
 export default function UploadPage() {
   const [file, setFile] = useState(null);
@@ -30,27 +31,29 @@ export default function UploadPage() {
     }
     const filePath = `${Date.now()}-${file.name}`;
     const { error: uploadError } = await supabase.storage
-      .from("files")
+      .from("noteflow-files")
       .upload(filePath, file);
     if (uploadError) {
       console.error(uploadError);
       return alert("Upload failed");
     }
     const { data } = supabase.storage
-      .from("files")
+      .from("noteflow-files")
       .getPublicUrl(filePath);
     const fileUrl = data.publicUrl;
-    const { error: dbError } = await supabase.from("notes").insert([
-      {
+    try {
+      await api.post("/api/notes", {
+        title: topic,
         subject,
-        topic,
         semester,
-        file_url: fileUrl,
-      },
-    ]);
-    if (dbError) {
-      console.error(dbError);
-      return alert("DB Save Failed");
+        description: "",
+        fileUrl,
+        originalName: file.name,
+        mimeType: file.type || "application/octet-stream",
+      });
+    } catch (err) {
+      console.error(err);
+      return alert(err.response?.data?.message || "DB Save Failed");
     }
     alert("Uploaded Successfully ✅");
     setFile(null);

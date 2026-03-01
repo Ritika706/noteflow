@@ -267,7 +267,7 @@ router.delete('/:id', authRequired, async (req, res, next) => {
         // Extract path from public URL
         const url = new URL(note.fileUrl);
         const pathParts = url.pathname.split('/');
-        const fileKey = pathParts.slice(3).join('/'); // /storage/v1/object/public/bucket/fileKey
+        const fileKey = pathParts.slice(6).join('/'); // /storage/v1/object/public/{bucket}/{fileKey}
         const { error } = await supabase.storage.from(bucket).remove([fileKey]);
         if (error) {
           console.error('[delete] supabase error:', error.message || error);
