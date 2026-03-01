@@ -212,44 +212,6 @@ router.post(
   }
 );
 
-// Public preview - stream file for PDF preview in iframe
-router.get('/:id/preview', async (req, res) => {
-  try {
-    const note = await Note.findById(req.params.id).select('fileUrl mimeType originalName').lean();
-    if (!note) {
-      return res.status(404).send('Note not found');
-    }
-    if (!note.fileUrl) {
-      return res.status(404).send('Preview not available - no file URL stored');
-    }
-
-    // Fetch file from Supabase storage (public URL) using axios for streaming
-    const axios = require('axios');
-    const fileResponse = await axios.get(note.fileUrl, { responseType: 'stream' });
-    if (fileResponse.status !== 200) {
-      console.error('Failed to fetch file from storage', fileResponse.status, fileResponse.statusText);
-      return res.status(502).send('Failed to fetch file from storage');
-    }
-
-    // Only set PDF headers for PDFs
-    const isPdf = (note.mimeType === 'application/pdf' || note.originalName?.toLowerCase().endsWith('.pdf'));
-    if (isPdf) {
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `inline; filename="${note.originalName || 'file.pdf'}"`);
-    } else {
-      res.setHeader('Content-Type', note.mimeType || 'application/octet-stream');
-      res.setHeader('Content-Disposition', `inline; filename="${note.originalName || 'file'}"`);
-    }
-
-    console.log('Previewing file:', note.originalName, 'as', res.getHeader('Content-Type'));
-
-    // Stream file to client
-    fileResponse.data.pipe(res);
-  } catch (e) {
-    return res.status(502).send('Failed to fetch file');
-  }
-});
-
 // Protected download + track
 router.get('/:id/download', authRequired, async (req, res) => {
   try {

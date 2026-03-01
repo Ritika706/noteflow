@@ -1,7 +1,7 @@
-import PDFViewer from '../components/PDFViewer';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import FileViewer from '../components/PDFViewer';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { api, apiBaseUrl } from '../lib/api';
+import { api } from '../lib/api';
 import { isLoggedIn } from '../lib/auth';
 import { toastError, toastInfo, toastSuccess } from '../lib/toast';
 import { getAxiosErrorMessage } from '../lib/axiosError';
@@ -44,13 +44,8 @@ export default function NoteDetailsPage() {
     return () => document.removeEventListener('fullscreenchange', onFsChange);
   }, []);
 
-  const previewUrl = useMemo(() => {
-    if (note?.fileUrl) {
-      const base = String(apiBaseUrl || '').trim().replace(/\/+$/, '');
-      return `${base}/api/notes/${note._id}/preview`;
-    }
-    return null;
-  }, [note]);
+  // Use direct Supabase public URL for preview (Google Docs Viewer needs public access)
+  const previewUrl = note?.fileUrl || null;
 
   async function download() {
     if (!isLoggedIn()) {
@@ -86,8 +81,6 @@ export default function NoteDetailsPage() {
   if (loading) return <div>Loading…</div>;
   if (error) return <div className="rounded-xl border border-destructive/20 bg-white/70 p-3 text-sm text-destructive">{error}</div>;
   if (!note) return null;
-
-  const mime = note.mimeType || '';
 
   async function toggleBookmark() {
     if (!isLoggedIn()) {
@@ -242,7 +235,7 @@ export default function NoteDetailsPage() {
       <Card className="p-6">
         <div className="flex items-center justify-between gap-3">
           <div className="font-display text-lg font-semibold">Preview</div>
-          {previewUrl && mime.includes('pdf') ? (
+          {previewUrl ? (
             <button
               type="button"
               onClick={toggleFullscreen}
@@ -254,11 +247,9 @@ export default function NoteDetailsPage() {
         </div>
         {!previewUrl ? (
           <div className="mt-3 text-sm text-slate-600 dark:text-slate-300">
-            {note?.fileUrl
-              ? 'No preview available.'
-              : 'Preview unavailable because this file is not stored in cloud storage. Please re-upload the note.'}
+            Preview unavailable because this file is not stored in cloud storage. Please re-upload the note.
           </div>
-        ) : mime.includes('pdf') ? (
+        ) : (
           <div
             ref={previewWrapRef}
             className={
@@ -267,19 +258,7 @@ export default function NoteDetailsPage() {
                 : 'mt-4 overflow-hidden rounded-xl border border-slate-200/70 dark:border-white/10 bg-white'
             }
           >
-            <PDFViewer url={previewUrl} />
-          </div>
-        ) : mime.startsWith('image/') ? (
-          <a href={previewUrl} target="_blank" rel="noreferrer" className="block mt-4">
-            <img
-              alt="preview"
-              src={previewUrl}
-              className="max-h-[72vh] w-full rounded-xl border border-slate-200/70 dark:border-white/10 object-contain hover:opacity-95 transition"
-            />
-          </a>
-        ) : (
-          <div className="mt-3 text-sm text-slate-600 dark:text-slate-300">
-            This file type can’t be previewed in the browser ({mime}). Please download.
+            <FileViewer url={previewUrl} />
           </div>
         )}
       </Card>
