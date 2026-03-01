@@ -56,4 +56,4 @@ router.post('/bookmarks/:noteId', authRequired, async (req, res) => {
   return res.json({ bookmarked: true });
 });
 
-module.exports = { meRouter: router };
+module.exports = { userRouter: router };

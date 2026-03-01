@@ -9,9 +9,6 @@ const Joi = require('joi');
 
 const router = express.Router();
 
-
-
-
 // Public list + search/filter
 router.get('/', async (req, res) => {
   try {
@@ -336,8 +333,5 @@ router.delete('/:id', authRequired, async (req, res) => {
     return next(e);
   }
 });
-
-
-
 
 module.exports = { notesRouter: router };

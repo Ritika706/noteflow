@@ -27,7 +27,6 @@ For production, set all environment variables (Supabase keys, JWT secret, etc.) 
 
 - backend/ – Express API, MongoDB, Supabase integration
 - frontend/ – React (Vite), Tailwind, API calls
-- uploads/ – Uploaded files
 
 ## 🚀 Quick Start
 

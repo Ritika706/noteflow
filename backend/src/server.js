@@ -8,9 +8,9 @@ const rateLimit = require('express-rate-limit');
 dotenv.config();
 
 const { connectDb } = require('./db');
-const { authRouter } = require('./routes/auth');
-const { notesRouter } = require('./routes/notes');
-const { meRouter } = require('./routes/me');
+const { authRouter } = require('./routes/auth.routes');
+const { notesRouter } = require('./routes/notes.routes');
+const { userRouter } = require('./routes/user.routes');
 const { Note } = require('./models/Note');
 const { User } = require('./models/User');
 const mongoose = require('mongoose');
@@ -98,7 +98,7 @@ app.get('/api/stats', async (req, res) => {
 });
 app.use('/api/auth', authRouter);
 app.use('/api/notes', notesRouter);
-app.use('/api/me', meRouter);
+app.use('/api/me', userRouter);
 
 
 // Centralized error handler

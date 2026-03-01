@@ -14,9 +14,6 @@
 # build outputs
 frontend/dist/
 
-# uploads
-**/uploads/
-
 # OS/editor
 .DS_Store
 Thumbs.db
