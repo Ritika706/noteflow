@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { api } from "../lib/api";
 
@@ -7,6 +7,7 @@ export default function UploadPage() {
   const [subject, setSubject] = useState("");
   const [topic, setTopic] = useState("");
   const [semester, setSemester] = useState("");
+  const fileInputRef = useRef(null);
 
   const handleFile = (selected) => {
     if (!selected) return;
@@ -60,6 +61,7 @@ export default function UploadPage() {
     setSubject("");
     setTopic("");
     setSemester("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (
@@ -100,6 +102,7 @@ export default function UploadPage() {
           </span>
         </div>
         <input
+          ref={fileInputRef}
           type="file"
           accept=".pdf,.doc,.docx,.txt,.zip,.rar,.csv,.xlsx,.ppt,.pptx"
           onChange={(e) => handleFile(e.target.files[0])}
